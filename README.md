@@ -1,4 +1,4 @@
-# biscut
+# BISCUT
 Bayesian Inference of Slide-level Confidence via Uncertainty Thresholding
 
 # Requirements
