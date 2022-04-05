@@ -1,0 +1,10 @@
+slideflow>=1.1.0rc1
+pandas
+click
+numpy
+tensorflow>=2.7
+seaborn
+scikit-misc
+scipy
+tqdm
+sklearn
