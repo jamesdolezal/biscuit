@@ -7,6 +7,7 @@ import utils
 import slideflow as sf
 import matplotlib.pyplot as plt
 import tensorflow as tf
+from errors import *
 
 from PIL import Image
 from statistics import mean
@@ -106,7 +107,7 @@ def show_results(
         P = sf.Project(experiment.TRAIN_PATH)
         cP = sf.Project(experiment.EVAL_PATHS[0])
         if not utils.model_exists(P, f'EXP_AA_FULL'):
-            raise sf.errors.ModelNotFoundError("Could not find trained model EXP_AA_FULL.")
+            raise ModelNotFoundError("Could not find trained model EXP_AA_FULL.")
         aa_model = utils.find_model(P, f'EXP_AA_FULL', epoch=1)
 
         # Get tile uncertainty threshold
@@ -119,7 +120,7 @@ def show_results(
         all_tile_uq_thresh = []
         for k in range(1, 4):
             k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'EXP_AA_UQ-k{k}', k=5)]
-            tile_thresh, _, _, _ = sf.uq.find_cv_thresholds(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
+            tile_thresh, _, _, _ = threshold.from_cv(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
             all_tile_uq_thresh += [tile_thresh]
         aa_tile_uncertainty_threshold = mean(all_tile_uq_thresh)
 

@@ -8,7 +8,7 @@ import slideflow as sf
 import matplotlib.colors as colors
 
 from delong import delong_roc_variance
-from slideflow.errors import *
+from errors import *
 from sklearn import metrics
 from tabulate import tabulate
 from scipy import stats

@@ -6,10 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
 import utils
+import threshold
 
 from utils import OUTCOME, OUTCOME1, OUTCOME2
 from skmisc.loess import loess
-from slideflow.errors import *
+from errors import *
 from slideflow.util import log
 from scipy import stats
 from tqdm import tqdm
@@ -140,13 +141,13 @@ def plot_uncertainty_calibration(project, exp, kfold, tile_thresh, slide_thresh,
     _df = _df.append(val_dfs[2], ignore_index=True)
 
     # Plot tile-level uncertainty
-    _df, _ = sf.uq.process_tile_predictions(_df, patients=project.dataset().patients())
-    sf.uq.plot_uncertainty(_df, kind='tile', threshold=tile_thresh, title=f'CV UQ Calibration: Exp {exp}')
+    _df, _ = threshold.process_tile_predictions(_df, patients=project.dataset().patients())
+    threshold.plot_uncertainty(_df, kind='tile', threshold=tile_thresh, title=f'CV UQ Calibration: Exp {exp}')
 
     # Plot slide-level uncertainty
     _df = _df[_df['uncertainty'] < tile_thresh]
-    _s_df, _ = sf.uq.process_group_predictions(_df, pred_thresh=pred_thresh, level='slide')
-    sf.uq.plot_uncertainty(_s_df, kind='slide', threshold=slide_thresh, title=f'CV UQ Calibration: Exp {exp}')
+    _s_df, _ = threshold.process_group_predictions(_df, pred_thresh=pred_thresh, level='slide')
+    threshold.plot_uncertainty(_s_df, kind='slide', threshold=slide_thresh, title=f'CV UQ Calibration: Exp {exp}')
 
 def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
     '''Plots out-of-distribution, pan-cancer predictions.
@@ -187,12 +188,12 @@ def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
 
     # Non-thresholed predictions
     slide_labels = dict(zip(preds['slide'], preds[OUTCOME]))
-    nouq_tile_preds, _ = sf.uq.process_tile_predictions(preds)
-    nouq_slide_preds, _ = sf.uq.process_group_predictions(nouq_tile_preds, pred_thresh=pred_thresh, level='slide')
+    nouq_tile_preds, _ = threshold.process_tile_predictions(preds)
+    nouq_slide_preds, _ = threshold.process_group_predictions(nouq_tile_preds, pred_thresh=pred_thresh, level='slide')
 
     # UQ thresholded tile-level predictions
     uq_tile_preds = nouq_tile_preds[nouq_tile_preds['uncertainty'] < tile_thresh]
-    uq_slide_preds, _ = sf.uq.process_group_predictions(uq_tile_preds, pred_thresh=pred_thresh, level='slide')
+    uq_slide_preds, _ = threshold.process_group_predictions(uq_tile_preds, pred_thresh=pred_thresh, level='slide')
     uq_slide_preds = uq_slide_preds[uq_slide_preds['uncertainty'] < slide_thresh]
 
     def proc_preds(s_df):
@@ -604,8 +605,8 @@ def results(all_exp, uq=True, eval=True, plot=False):
                     k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'EXP_{exp}_UQ-k{k}', k=5)]
                     val_path = join(utils.find_model(P, f'EXP_{exp}_UQ', kfold=k), 'tile_predictions_val_epoch1.csv')
                     if not exists(val_path): raise FileNotFoundError
-                    tile_thresh, _, _, _ = sf.uq.find_cv_thresholds(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
-                    _, slide_thresh, tile_pred_thresh, slide_pred_thresh = sf.uq.find_cv_thresholds(k_preds, tile_uq_thresh=tile_thresh, slide_uq_thresh='detect', **threshold_params)
+                    tile_thresh, _, _, _ = threshold.from_cv(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
+                    _, slide_thresh, tile_pred_thresh, slide_pred_thresh = threshold.from_cv(k_preds, tile_uq_thresh=tile_thresh, slide_uq_thresh='detect', **threshold_params)
                 except (MatchError, FileNotFoundError, ModelNotFoundError) as e:
                     log.debug(str(e))
                     log.debug(f"Skipping UQ crossval thresholding results for {exp}; not found")
@@ -624,7 +625,7 @@ def results(all_exp, uq=True, eval=True, plot=False):
                 tile_pred_df.rename(columns={utils.y_pred_header: 'y_pred', utils.y_true_header: 'y_true', utils.uncertainty_header: 'uncertainty'}, inplace=True)
 
                 def get_auc_by_level(level):
-                    auc, perc, _, _, _ = sf.uq.apply_threshold(
+                    auc, perc, _, _, _ = threshold.apply(
                         tile_pred_df,
                         thresh_tile=tile_thresh,
                         thresh_slide=slide_thresh,
@@ -735,7 +736,7 @@ def results(all_exp, uq=True, eval=True, plot=False):
                             thresh_slide = slide_uq_thresholds[exp]
 
                             def get_metrics_by_level(level):
-                                return sf.uq.apply_threshold(
+                                return threshold.apply(
                                     tile_pred_df,
                                     thresh_tile=thresh_tile,
                                     thresh_slide=thresh_slide,
