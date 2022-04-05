@@ -13,7 +13,7 @@ To reproduce results described in the manuscript, start by downloading whole-sli
 
 Download whole-slide images from the [Clinical Proteomics Tumor Analysis Consortium (CPTAC)](https://proteomics.cancer.gov/data-portal) data portal, projects TCGA-LUAD and TSCA-LSCC.
 
-Then, configure experimental projects with Slideflow using the `configure.py` script, passing the directories to your training slides (TCGA) and evaluation slides (CPTAC). This step will also extract image tiles from whole-slide images.
+Then, configure experimental projects with Slideflow using the `configure.py` script, passing the directories to your training slides (TCGA) and evaluation slides (CPTAC). This step will extract image tiles from whole-slide images.
 
 ```
 python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
@@ -34,12 +34,12 @@ python3 train.py --outdir=/path/ --slideflow=/path/to/gan_cofig.json --mirror=1 
 To create intermediate images from a trained GAN model using latent space embedding interpolation, use the `generate_tfrecords.py` script **in the StyleGAN2-slideflow** repository. Flags that will be relevant include:
 
 - `--network`: Path to network PKL file (saved GAN model)
-- `--tiles': Number of tiles per tfrecord to generate (manuscript uses 1000)
-- '--tfrecords': Number of tfrecords to generate
-- '--embed': Generate intermediate images with class embedding interpolation.
-- '--name': Name format for tfrecords.
-- '--class': Class index, if not using embedding interpolation.
-- '--outdir': Directory in which to save tfrecords.
+- `--tiles`: Number of tiles per tfrecord to generate (manuscript uses 1000)
+- `--tfrecords`: Number of tfrecords to generate
+- `--embed`: Generate intermediate images with class embedding interpolation.
+- `--name`: Name format for tfrecords.
+- `--class`: Class index, if not using embedding interpolation.
+- `--outdir`: Directory in which to save tfrecords.
 
 For example, to create tfrecords containing synthetic images of class 0 (LUAD / adenocarcinoma):
 
@@ -50,7 +50,7 @@ python3 generate_tfrecords.py --network=/path/network.pkl --tiles=1000 --tfrecor
 To create embedding-interpolated intermediate images:
 
 ```
-python3 generate_tfrecords.py --network=/path/network.pkl --tiles=1000 --tfrecords=10 --name=gan_int --embed=1 --outdir=gan/
+python3 generate_tfrecords.py --network=/path/network.pkl --tiles=1000 --tfrecords=10 --name=gan --embed=1 --outdir=gan/
 ```
 
 Subsequent steps will assume that the GAN tfrecords are in the folder `gan/`.
