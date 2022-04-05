@@ -1,5 +1,5 @@
-# biscut
-Bayesian Inference of Slide-level Confidence via Uncertainty Thresholding
+# BISCUIT <img src="https://i.imgur.com/VGK46TB.png" width="280px" align="right" />
+Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding
 
 # Requirements
 - Tensorflow 2.7 [see https://tensorflow.org for installation and requirements]
