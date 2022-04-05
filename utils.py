@@ -31,26 +31,6 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 
-def load_p_df(path, manifest):
-
-    # Process manifest
-    manifest = {sf.util.path_to_name(m): manifest[m]['total'] for m in manifest}
-
-    # Load predictions
-    df = load_and_fix_patient_pred(join(path, f'patient_predictions_{OUTCOME}_val_epoch1.csv'))
-    df['n_slides'] = len(sf.util.get_slides_from_model_manifest(path, dataset=None))
-
-    y_true = df['y_true1'].to_numpy()
-    y_pred = df['percent_tiles_positive1'].to_numpy()
-    _, opt_thresh = auc_and_threshold(y_true, y_pred)
-
-    yt = y_true.astype(bool)
-    yp = y_pred > opt_thresh
-    df['correct'] = ~np.logical_xor(yt, yp)
-    df['n_tiles'] = df['patient'].map(manifest)
-
-    return df
-
 def get_model_results(path, outcome=OUTCOME):
     csv = pd.read_csv(join(path, 'results_log.csv'))
     model_res = next(csv.iterrows())[1]
@@ -83,50 +63,6 @@ def find_cv_early_stop(P, label, k=3):
         return round(mean(early_stop_batch))
     else:
         return None
-
-def fill_under_lines(ax=None, alpha=.2, **kwargs):
-    if ax is None:
-        ax = plt.gca()
-    for line in ax.lines:
-        x, y = line.get_xydata().T
-        ax.fill_between(x, 0, y, color=line.get_color(), alpha=alpha, **kwargs)
-
-def auc_power_table(df):
-    max_slides = df['n_slides'].max()
-    target_auc = df.loc[df['n_slides'] == max_slides]['patient_auc'].mean()
-    print(f"Power table for target max AUC of {target_auc}")
-    table = []
-    gamma = [0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]
-
-    # Remove outlier
-    df = df.loc[df['n_slides'] != 70]
-
-    # Non-parametric binning / smoothing
-    sorted_n_slides = sorted(np.unique(df['n_slides'].to_numpy()).tolist())
-    binned = {sorted_n_slides[i]: sorted_n_slides[i-1:i+2] for i in range(1, len(sorted_n_slides)-1)}
-    binned.update({sorted_n_slides[0]: sorted_n_slides[:2]})
-    binned.update({sorted_n_slides[-1]: sorted_n_slides[-2:]})
-
-    # Print gamma table
-    header = ['n_slides'] + [f'gamma={g}' for g in gamma]
-    for n_slides in np.unique(df['n_slides'].to_numpy()):
-        compare_n_slides = binned[n_slides]
-        _auc = df.loc[df['n_slides'].isin(compare_n_slides)]['patient_auc'].to_numpy() # With binning
-        table_row = [n_slides]
-        table_row += [stats.ttest_1samp(_auc, target_auc * g, alternative='less')[1] for g in gamma]
-        table += [table_row]
-    table = np.array(table)
-    print(tabulate(table, headers=header, tablefmt='grid'))
-
-    # Convert to power table
-    ptable = []
-    beta_range = [0.8, 0.85, 0.9, 0.91, 0.92, 0.93, 0.94, 0.95, 0.96, 0.97, 0.98, 0.99]
-    ptable_header = [''] + [f'B={1-b:.2f}' for b in beta_range]
-    for i, g in enumerate(gamma):
-        ptable_row = [f'g={g:.2f}']
-        ptable_row += [table[min(np.where(table[:, i+1] >= beta)[0]), 0] for beta in beta_range]
-        ptable += [ptable_row]
-    print(tabulate(ptable, headers=ptable_header, tablefmt='grid'))
 
 # --- Utility functions for finding experiment models -----------------------------------------------------------------
 

@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import slideflow as sf
+import utils
 
-from slideflow.errors import *
+from errors import *
 from skmisc.loess import loess
 from sklearn import metrics
 from slideflow.util import log
@@ -224,7 +225,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5, slide_pred_thresh
             raise Exception(f"Unknown keep option {keep}")
 
     # Show post-filtering group-level predictions and AUC
-    auc = sf.stats.auc(s_df['y_true'].to_numpy(), s_df['y_pred'].to_numpy())
+    auc = utils.auc(s_df['y_true'].to_numpy(), s_df['y_pred'].to_numpy())
     num_post_filter = len(s_df)
     percent_incl = num_post_filter / num_pre_filter
     log.debug(f"Percent {level} included: {percent_incl*100:.2f}%")
@@ -313,7 +314,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
             plot_uncertainty(s_df, threshold=thresh_slide, kind='slide')
 
     # Show post-filtering slide predictions and AUC
-    auc = sf.stats.auc(s_df['y_true'].to_numpy(), s_df['y_pred'].to_numpy())
+    auc = utils.auc(s_df['y_true'].to_numpy(), s_df['y_pred'].to_numpy())
 
     return thresh_tile, thresh_slide, auc, tile_pred_thresh, slide_pred_thresh
 
