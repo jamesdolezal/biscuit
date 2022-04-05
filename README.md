@@ -1,2 +1,2 @@
 # biscut
-Bayesian Inference of Slide-level Confidence via Uncertainty Threshold
+Bayesian Inference of Slide-level Confidence via Uncertainty Thresholding
