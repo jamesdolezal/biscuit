@@ -15,9 +15,13 @@ from scipy import stats
 from statistics import mean, variance
 from os.path import join
 
-uncertainty_header = 'cohort_uncertainty1'
-y_true_header = 'cohort_y_true0'
-y_pred_header = 'cohort_y_pred1'
+OUTCOME = 'cohort'
+OUTCOME1 = 'LUAD'
+OUTCOME2 = 'LUSC'
+
+uncertainty_header = f'{OUTCOME}_uncertainty1'
+y_true_header = f'{OUTCOME}_y_true0'
+y_pred_header = f'{OUTCOME}_y_pred1'
 
 # --- General utility functions ---------------------------------------------------------------------------------------
 
@@ -33,7 +37,7 @@ def load_p_df(path, manifest):
     manifest = {sf.util.path_to_name(m): manifest[m]['total'] for m in manifest}
 
     # Load predictions
-    df = load_and_fix_patient_pred(join(path, f'patient_predictions_cohort_val_epoch1.csv'))
+    df = load_and_fix_patient_pred(join(path, f'patient_predictions_{OUTCOME}_val_epoch1.csv'))
     df['n_slides'] = len(sf.util.get_slides_from_model_manifest(path, dataset=None))
 
     y_true = df['y_true1'].to_numpy()
@@ -47,7 +51,7 @@ def load_p_df(path, manifest):
 
     return df
 
-def get_model_results(path, outcome='cohort'):
+def get_model_results(path, outcome=OUTCOME):
     csv = pd.read_csv(join(path, 'results_log.csv'))
     model_res = next(csv.iterrows())[1]
     pt_ap = mean(eval(model_res['patient_ap'])[outcome])
@@ -57,7 +61,7 @@ def get_model_results(path, outcome='cohort'):
     tile_ap = mean(eval(model_res['tile_ap'])[outcome])
     tile_auc = eval(model_res['tile_auc'])[outcome][0]
 
-    predictions_path = join(path, f'patient_predictions_cohort_val_epoch1.csv')
+    predictions_path = join(path, f'patient_predictions_{OUTCOME}_val_epoch1.csv')
     if os.path.exists(predictions_path):
         manual_auc, opt_thresh = auc_and_threshold(*read_group_predictions(predictions_path))
     else:
@@ -128,13 +132,13 @@ def auc_power_table(df):
 
 def find_model(P, label, epoch=None, kfold=None):
     tail = '' if kfold is None else f'-kfold{kfold}'
-    matching = [o for o in os.listdir(P.models_dir) if o[6:] == f'cohort-{label}-HP0{tail}']
+    matching = [o for o in os.listdir(P.models_dir) if o[6:] == f'{OUTCOME}-{label}-HP0{tail}']
     if len(matching) > 1:
         raise MultipleModelsFoundError(f"Multiple matching model experiments found for label {label} ({tail})")
     elif not len(matching):
         raise ModelNotFoundError(f"No matching model found for label {label} ({tail}).")
     elif epoch is not None:
-        return join(P.models_dir, matching[0], f'cohort-{label}-HP0{tail}_epoch{epoch}')
+        return join(P.models_dir, matching[0], f'{OUTCOME}-{label}-HP0{tail}_epoch{epoch}')
     else:
         return join(P.models_dir, matching[0])
 
@@ -149,7 +153,7 @@ def find_cv(P, label, epoch=None, k=3):
     return [find_model(P, label, epoch=epoch, kfold=_k) for _k in range(1, k+1)]
 
 def find_eval(P, label, epoch=1):
-    matching = [o for o in os.listdir(P.eval_dir) if o[11:] == f'cohort-{label}-HP0_epoch{epoch}']
+    matching = [o for o in os.listdir(P.eval_dir) if o[11:] == f'{OUTCOME}-{label}-HP0_epoch{epoch}']
     if len(matching) > 1:
         raise MultipleModelsFoundError(f"Multiple matching eval experiments found for label {label}")
     elif not len(matching):

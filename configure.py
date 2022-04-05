@@ -1,6 +1,7 @@
 import os
 import click
 import slideflow as sf
+import experiment
 from os.path import exists, join, abspath
 
 #----------------------------------------------------------------------------
@@ -23,6 +24,9 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val
         val_anns = abspath(val_anns)
     if train_roi:
         train_roi = abspath(train_roi)
+    gan_path = abspath('gan')
+    if not exists(gan_path):
+        os.makedirs(gan_path)
 
     # --- Set up projects -----------------------------------------------------
 
@@ -36,6 +40,13 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val
             roi=(train_roi if train_roi else train_slides),
             tiles=join(out, 'training', 'tiles'),
             tfrecords=join(out, 'training', 'tfrecords')
+        )
+        tP.add_source(
+            name='LUNG_GAN',
+            slides=gan_path,
+            roi=gan_path,
+            tiles=gan_path,
+            tfrecords=gan_path
         )
         print(f"Training project setup at {join(out, 'training')}.")
     else:
@@ -63,7 +74,7 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val
 
     # --- Perform tile extraction ---------------------------------------------
 
-    print("Extracting tiles from whole-slide images")
+    print("Extracting tiles from whole-slide images at 299px, 302um")
     for P in (eP, tP):
         P.extract_tiles(
             tile_px=299,
@@ -71,7 +82,38 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val
             qc=True,
             img_format='png'
         )
+    print("Extracting tiles from whole-slide images at 512px, 400um (for GAN training)")
+    for P in (eP, tP):
+        P.extract_tiles(
+            tile_px=512,
+            tile_um=400,
+            qc=True,
+            img_format='png'
+        )
     print("Finished tile extraction, project configuration complete.")
+
+    # --- Save GAN training configuration -------------------------------------
+
+    if not exists('gan_config.json'):
+        gan_config = {
+            "project_path": join(out, 'training'),
+            "tile_px": 512,
+            "tile_um": 400,
+            "model_type": "categorical",
+            "outcome_label_headers": [
+                experiment.OUTCOME
+            ],
+            "filters": {
+                experiment.OUTCOME: [
+                experiment.OUTCOME1,
+                experiment.OUTCOME2
+                ]
+            }
+        }
+        sf.util.write_json(gan_config, 'gan_config.json')
+        print("Wrote GAN configuration to gan_config.json")
+    else:
+        print("GAN configuration already exists at gan_config.json")
 
 #----------------------------------------------------------------------------
 
