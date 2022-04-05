@@ -1,4 +1,4 @@
-# BISCUIT
+# BISCUIT <img src="https://drive.google.com/file/d/1PiAu0uXaOAL8Z8d7npEO4DSjmt75uY9X/view?usp=sharing" width="280px" align="right" />
 Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding
 
 # Requirements
