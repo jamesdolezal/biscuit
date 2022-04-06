@@ -15,6 +15,9 @@ color_palette = {
     'positive': (1.0, 0.4980392156862745, 0.054901960784313725)				   # orange
 }
 
+class PredsContainNaNError(Exception):
+    pass
+
 def plot_uncertainty(df, kind, threshold=None, title=None):
     '''Plots figure of tile or slide-level predictions vs. uncertainty with matplotlib.
 
@@ -103,6 +106,8 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
     '''
 
     # Tile-level AUC
+    if np.isnan(df['y_pred'].to_numpy()).sum():
+        raise PredsContainNaNError
     fpr, tpr, thresh = metrics.roc_curve(df['y_true'].to_numpy(), df['y_pred'].to_numpy())
     tile_auc = metrics.auc(fpr, tpr)
     try:
@@ -269,7 +274,11 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
         Tile UQ threshold, Slide UQ threshold, AUC, Tile prediction threshold, Slide prediction threshold
     '''
 
-    df, tile_pred_thresh = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
+    try:
+        df, tile_pred_thresh = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
+    except PredsContainNaNError:
+        log.error(f"Tile-level predictions contain NaNs; unable to process.")
+        return None, None, None, None, None
 
     # Tile-level ROC and Youden's J
     if isinstance(tile_uq_thresh, float):
@@ -350,6 +359,7 @@ def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0', uncertain
     skip_slide = 'slide_uq_thresh' in kwargs and kwargs['slide_uq_thresh'] is None
 
     for p, path in enumerate(k_paths):
+        log.debug(f"Detecting thresholds from {path}")
         df = pd.read_csv(path)
         df.rename(columns={y_pred_header: 'y_pred', y_true_header: 'y_true', uncertainty_header: 'uncertainty'}, inplace=True)
         thresh_tile, thresh_slide, auc, slide_pred_thresh, tile_pred_thresh = detect(df, **kwargs)
