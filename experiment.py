@@ -8,7 +8,6 @@ import numpy as np
 import utils
 import threshold
 
-from utils import OUTCOME, OUTCOME1, OUTCOME2
 from skmisc.loess import loess
 from errors import *
 from slideflow.util import log
@@ -64,7 +63,7 @@ def train(P, hp, label, filters, save_predictions=False, save_model=False, **kwa
     '''
 
     P.train(
-        OUTCOME,
+        utils.OUTCOME,
         exp_label=label,
         filters=filters,
         params=hp,
@@ -118,7 +117,7 @@ def train_nested_cv(P, hp, label, **kwargs):
 
 # --- Plotting functions --------------------------------------------------------------------------------------------
 
-def plot_uncertainty_calibration(project, exp, kfold, tile_thresh, slide_thresh, pred_thresh):
+def plot_uncertainty_calibration(project, exp, tile_thresh, slide_thresh, pred_thresh):
     '''Plots a graph of predictions vs. uncertainty.
 
     Args:
@@ -133,7 +132,7 @@ def plot_uncertainty_calibration(project, exp, kfold, tile_thresh, slide_thresh,
         None
     '''
 
-    val_dfs = [pd.read_csv(join(utils.find_model(project, f'EXP_{exp}_UQ', kfold=kfold), 'tile_predictions_val_epoch1.csv'), dtype={'slide': str}) for k in range(1, 4)]
+    val_dfs = [pd.read_csv(join(utils.find_model(project, f'EXP_{exp}_UQ', kfold=k), 'tile_predictions_val_epoch1.csv'), dtype={'slide': str}) for k in range(1, 4)]
     for v in range(len(val_dfs)):
         val_dfs[v].rename(columns={utils.y_pred_header: 'y_pred', utils.y_true_header: 'y_true', utils.uncertainty_header: 'uncertainty'}, inplace=True)
     _df = val_dfs[0]
@@ -180,14 +179,14 @@ def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
     preds = pd.read_csv(join(root, 'squam_tile_predictions.csv'), dtype={'slide': str})
     preds = preds.append(pd.read_csv(join(root, 'adeno_tile_predictions.csv'), dtype={'slide': str}), ignore_index=True)
     preds = preds.append(pd.read_csv(join(root, 'other_tile_predictions.csv'), dtype={'slide': str}), ignore_index=True)
-    preds.rename(columns={f'{OUTCOME}_y_pred1': 'y_pred', f'{OUTCOME}_y_true0': 'y_true', f'{OUTCOME}_uncertainty1': 'uncertainty'}, inplace=True)
+    preds.rename(columns={f'{utils.OUTCOME}_y_pred1': 'y_pred', f'{utils.OUTCOME}_y_true0': 'y_true', f'{utils.OUTCOME}_uncertainty1': 'uncertainty'}, inplace=True)
     patient_labels = dict(zip(annotations['patient'], annotations['project_id']))
     preds['patient'] = preds['slide'].str[0:12]
-    preds[OUTCOME] = preds['patient'].map(patient_labels)
+    preds[utils.OUTCOME] = preds['patient'].map(patient_labels)
     preds['y_true'] = 0
 
     # Non-thresholed predictions
-    slide_labels = dict(zip(preds['slide'], preds[OUTCOME]))
+    slide_labels = dict(zip(preds['slide'], preds[utils.OUTCOME]))
     nouq_tile_preds, _ = threshold.process_tile_predictions(preds)
     nouq_slide_preds, _ = threshold.process_group_predictions(nouq_tile_preds, pred_thresh=pred_thresh, level='slide')
 
@@ -200,15 +199,15 @@ def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
         s_df['primary_diagnosis'] = s_df['slide'].map(hist)
         s_df['histology_category'] = s_df['slide'].map(hist_cat)
         s_df['hist_pred'] = s_df['y_pred_bin'].map({0: "Adenocarcinoma", 1: "Squamous"})
-        s_df[OUTCOME] = s_df['slide'].map(slide_labels).str[5:]
+        s_df[utils.OUTCOME] = s_df['slide'].map(slide_labels).str[5:]
         s_df = s_df.set_index('slide')
         return s_df
 
     nouq_slide_preds = proc_preds(nouq_slide_preds)
     nouq_slide_preds.rename(columns={'hist_pred':'nouq_hist_pred'}, inplace=True)
     uq_slide_preds = proc_preds(uq_slide_preds)
-    uq_slide_preds.drop(columns=[OUTCOME, 'histology_category', 'primary_diagnosis'], inplace=True)
-    slide_preds = uq_slide_preds.merge(nouq_slide_preds[['primary_diagnosis', 'histology_category', 'nouq_hist_pred', OUTCOME]], how='outer', left_index=True, right_index=True)
+    uq_slide_preds.drop(columns=[utils.OUTCOME, 'histology_category', 'primary_diagnosis'], inplace=True)
+    slide_preds = uq_slide_preds.merge(nouq_slide_preds[['primary_diagnosis', 'histology_category', 'nouq_hist_pred', utils.OUTCOME]], how='outer', left_index=True, right_index=True)
 
     f, axes = plt.subplots(1, 3)
     f.set_size_inches(20, 6)
@@ -286,8 +285,8 @@ def config(name_pattern, subset, ratio, **kwargs):
             n2 = EXP_NAME_MAP[exp] - n1
 
             config.update({
-                exp_name:     {OUTCOME1: n1, OUTCOME2: n2, **kwargs},
-                exp_name+'i': {OUTCOME1: n2, OUTCOME2: n1, **kwargs}
+                exp_name:     {utils.OUTCOME1: n1, utils.OUTCOME2: n2, **kwargs},
+                exp_name+'i': {utils.OUTCOME1: n2, utils.OUTCOME2: n1, **kwargs}
             })
 
         else:
@@ -297,14 +296,14 @@ def config(name_pattern, subset, ratio, **kwargs):
             else:
                 n_out1 = n_out2 = int(EXP_NAME_MAP[exp] / 2)
             config.update({
-                exp_name: {OUTCOME1: n_out1, OUTCOME2: n_out2, **kwargs},
+                exp_name: {utils.OUTCOME1: n_out1, utils.OUTCOME2: n_out2, **kwargs},
             })
 
 
         config.update()
     return config
 
-def add(path, label, out1, out2, outcome=OUTCOME, order='forward', order_col='order', gan=0):
+def add(path, label, out1, out2, outcome=utils.OUTCOME, order='forward', order_col='order', gan=0):
     '''Adds a sample size experiment to the given project annotations file.
 
     Args:
@@ -330,14 +329,14 @@ def add(path, label, out1, out2, outcome=OUTCOME, order='forward', order_col='or
     ann = pd.read_csv(path, dtype=str)
     print(f"Configuring experiment {label} with order {order} (sorted by {order_col})")
     ann[order_col] = pd.to_numeric(ann[order_col])
-    ann.sort_values(['gan', OUTCOME, order_col], ascending=[True, True, (order != 'reverse')], inplace=True)
+    ann.sort_values(['gan', utils.OUTCOME, order_col], ascending=[True, True, (order != 'reverse')], inplace=True)
 
     gan_out1 = round(gan * out1)
     gan_out2 = round(gan * out2)
-    out1_indices = np.where((ann['site'].to_numpy() != 'GAN') & (ann[outcome] == OUTCOME1))[0]
-    out2_indices = np.where((ann['site'].to_numpy() != 'GAN') & (ann[outcome] == OUTCOME2))[0]
-    gan_out1_indices = np.where((ann['site'].to_numpy() == 'GAN') & (ann[outcome] == OUTCOME1))[0]
-    gan_out2_indices = np.where((ann['site'].to_numpy() == 'GAN') & (ann[outcome] == OUTCOME2))[0]
+    out1_indices = np.where((ann['site'].to_numpy() != 'GAN') & (ann[outcome] == utils.OUTCOME1))[0]
+    out2_indices = np.where((ann['site'].to_numpy() != 'GAN') & (ann[outcome] == utils.OUTCOME2))[0]
+    gan_out1_indices = np.where((ann['site'].to_numpy() == 'GAN') & (ann[outcome] == utils.OUTCOME1))[0]
+    gan_out2_indices = np.where((ann['site'].to_numpy() == 'GAN') & (ann[outcome] == utils.OUTCOME2))[0]
 
     assert out1 <= out1_indices.shape[0]
     assert out2 <= out2_indices.shape[0]
@@ -458,7 +457,7 @@ def run(all_exp, steps=None, hp='nature2022'):
         exp_hp.epochs = [1]
         exp_hp.uq = True
         for exp in all_exp:
-            total_slides = all_exp[exp][OUTCOME2] + all_exp[exp][OUTCOME1]
+            total_slides = all_exp[exp][utils.OUTCOME2] + all_exp[exp][utils.OUTCOME1]
             if total_slides >= 50:
                 train_nested_cv(P, exp_hp, f'EXP_{exp}_UQ', val_strategy='k-fold') # NO site-preservation for nested UQ
             else:
@@ -488,8 +487,8 @@ def run(all_exp, steps=None, hp='nature2022'):
                 else:
                     val_P.evaluate(
                         full_model,
-                        OUTCOME,
-                        filters={OUTCOME: [OUTCOME1, OUTCOME2]},
+                        utils.OUTCOME,
+                        filters={utils.OUTCOME: [utils.OUTCOME1, utils.OUTCOME2]},
                         save_predictions=True,
                 )
 
@@ -509,7 +508,7 @@ def results(all_exp, uq=True, eval=True, plot=False):
     # === Initialize projects & prepare experiments ===========================
 
     P = sf.Project(TRAIN_PATH)
-    eval_Ps = [sf.Project(path) for path in EVAL_PATHS]
+    eval_Ps = [sf.Project(path) for path in EVAL_PATHS if path != 'not_configured']
     df = pd.DataFrame()
     eval_dfs = {val_P.name: pd.DataFrame() for val_P in eval_Ps}
     prediction_thresholds = {}
@@ -661,7 +660,6 @@ def results(all_exp, uq=True, eval=True, plot=False):
                 plot_uncertainty_calibration(
                     project=P,
                     exp=exp,
-                    kfold=i,
                     tile_thresh=tile_uq_thresholds[exp],
                     slide_thresh=slide_uq_thresholds[exp],
                     pred_thresh=pred_uq_thresholds[exp]
@@ -699,10 +697,10 @@ def results(all_exp, uq=True, eval=True, plot=False):
                     pred_thresh = prediction_thresholds[exp]
 
                 # Patient-level and slide-level predictions & metrics
-                patient_yt, patient_yp = utils.read_group_predictions(join(eval_dir, f'patient_predictions_{OUTCOME}_eval.csv'))
+                patient_yt, patient_yp = utils.read_group_predictions(join(eval_dir, f'patient_predictions_{utils.OUTCOME}_eval.csv'))
                 patient_metrics = utils.prediction_metrics(patient_yt, patient_yp, threshold=pred_thresh)
                 patient_metrics = {f'patient_{m}': patient_metrics[m] for m in patient_metrics}
-                slide_yt, slide_yp = utils.read_group_predictions(join(eval_dir, f'patient_predictions_{OUTCOME}_eval.csv'))
+                slide_yt, slide_yp = utils.read_group_predictions(join(eval_dir, f'patient_predictions_{utils.OUTCOME}_eval.csv'))
                 slide_metrics = utils.prediction_metrics(slide_yt, slide_yp, threshold=pred_thresh)
                 slide_metrics = {f'slide_{m}': slide_metrics[m] for m in slide_metrics}
 
@@ -730,7 +728,7 @@ def results(all_exp, uq=True, eval=True, plot=False):
                     if exp in tile_uq_thresholds:
                         for keep in ('high_confidence', 'low_confidence'):
                             tile_pred_df = pd.read_csv(join(eval_dir, 'tile_predictions_eval.csv'), dtype={'slide': str})
-                            tile_pred_df.rename(columns={f'{OUTCOME}_y_pred1': 'y_pred', f'{OUTCOME}_y_true0': 'y_true', f'{OUTCOME}_uncertainty1': 'uncertainty'}, inplace=True)
+                            tile_pred_df.rename(columns={f'{utils.OUTCOME}_y_pred1': 'y_pred', f'{utils.OUTCOME}_y_true0': 'y_true', f'{utils.OUTCOME}_uncertainty1': 'uncertainty'}, inplace=True)
 
                             thresh_tile = tile_uq_thresholds[exp]
                             thresh_slide = slide_uq_thresholds[exp]

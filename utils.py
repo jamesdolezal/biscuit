@@ -31,7 +31,8 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 
-def get_model_results(path, outcome=OUTCOME):
+def get_model_results(path, outcome=None):
+    if outcome is None: outcome = OUTCOME
     csv = pd.read_csv(join(path, 'results_log.csv'))
     model_res = next(csv.iterrows())[1]
     pt_ap = mean(eval(model_res['patient_ap'])[outcome])
@@ -68,11 +69,12 @@ def find_cv_early_stop(P, label, k=3):
 
 def find_model(P, label, epoch=None, kfold=None):
     tail = '' if kfold is None else f'-kfold{kfold}'
-    matching = [o for o in os.listdir(P.models_dir) if o[6:] == f'{OUTCOME}-{label}-HP0{tail}']
+    model_name = f'{OUTCOME}-{label}-HP0{tail}'
+    matching = [o for o in os.listdir(P.models_dir) if o[6:] == model_name]
     if len(matching) > 1:
-        raise MultipleModelsFoundError(f"Multiple matching model experiments found for label {label} ({tail})")
+        raise MultipleModelsFoundError(f"Multiple matching model experiments found matching {model_name}")
     elif not len(matching):
-        raise ModelNotFoundError(f"No matching model found for label {label} ({tail}).")
+        raise ModelNotFoundError(f"No matching model found matching {model_name}.")
     elif epoch is not None:
         return join(P.models_dir, matching[0], f'{OUTCOME}-{label}-HP0{tail}_epoch{epoch}')
     else:
