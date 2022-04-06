@@ -2,8 +2,8 @@
 Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding
 
 # Requirements
-- [Tensorflow](https://tensorflow.org) >=2.7
-- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1
+- [Tensorflow](https://tensorflow.org) >=2.7 (and associated pre-requisites)
+- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1 (and associated pre-requisites)
 - Whole-slide images for training and validation
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
