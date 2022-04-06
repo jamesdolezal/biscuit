@@ -13,7 +13,7 @@ Please refer to our [Installation instructions](https://slideflow.dev/installati
 ## Data preparation
 The first step to reproducing results described in our manuscript is downloading whole-slide images (\*.svs files) from [The Cancer Genome Atlas (TCGA) data portal](https://portal.gdc.cancer.gov/), projects TCGA-LUAD and TCGA-LUSC, and slides from the [Clinical Proteomics Tumor Analysis Consortium (CPTAC)](https://proteomics.cancer.gov/data-portal) data portal, projects TCGA-LUAD and TSCA-LSCC.
 
-We use Slideflow for deep learning model training, which organizes data and annotations into [Projects](https://slideflow.dev/project_setup.html). We provide a `configure.py` script which will automatically set up the TCGA training and CPTAC evaluation projects, using specified paths to the training slides (TCGA) and evaluation slides (CPTAC). This step will also segment the whole-slide images into individual tiles, storing them as `*.tfrecords` for later use.
+We use Slideflow for deep learning model training, which organizes data and annotations into [Projects](https://slideflow.dev/project_setup.html). The provided `configure.py` script automatically sets up the TCGA training and CPTAC evaluation projects, using specified paths to the training slides (TCGA) and evaluation slides (CPTAC). This step will also segment the whole-slide images into individual tiles, storing them as `*.tfrecords` for later use.
 
 ```
 python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
@@ -22,16 +22,16 @@ python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
 Pathologist-annotated regions of interest (ROI) can optionally be used for the training dataset, as described in the [Slideflow documentation](https://slideflow.dev/pipeline.html). To use ROIs, specify the path to the ROI CSV files with the `--roi` argument.
 
 ## GAN Training
-To train the class-conditional GAN (StyleGAN2) needed for latent space embedding interpolation, clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage fromat Slideflow uses. The GAN is trained on image tiles 512 x 512 pixels and 400 x 400 microns. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
+The next step is training the class-conditional GAN (StyleGAN2) used for generating GAN-Intermediate images. Clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage format Slideflow uses. GAN will be trained 512 x 512 pixels images at 400 x 400 micron magnification. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
 
-Use `train.py` **in the StyleGAN2 repository** to train the GAN. Pass the `gan_config.json` file that the `configure.py` script generated earlier to the `--slideflow` flag.
+Use the `train.py` script **in the StyleGAN2 repository** to train the GAN. Pass the `gan_config.json` file that the `configure.py` script generated earlier to the `--slideflow` flag.
 
 ```
 python3 train.py --outdir=/path/ --slideflow=/path/to/gan_cofig.json --mirror=1 --cond=1 --augpipe=bgcfnc --metrics=none
 ```
 
 ## Generating GAN images
-To create intermediate images from a trained GAN model using latent space embedding interpolation, use the `generate_tfrecords.py` script **in the StyleGAN2-slideflow** repository. Flags that will be relevant include:
+To create the GAN-Intermediate images with latent space embedding interpolation, use the `generate_tfrecords.py` script **in the StyleGAN2-slideflow** repository. Flags that will be relevant include:
 
 - `--network`: Path to network PKL file (saved GAN model)
 - `--tiles`: Number of tiles per tfrecord to generate (manuscript uses 1000)
