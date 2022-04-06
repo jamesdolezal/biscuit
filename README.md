@@ -31,7 +31,7 @@ python3 train.py --outdir=/path/ --slideflow=/path/to/gan_cofig.json --mirror=1 
 ```
 
 ## Generating GAN images
-To create the GAN-Intermediate images with latent space embedding interpolation, use the `generate_tfrecords.py` script **in the StyleGAN2-slideflow** repository. Flags that will be relevant include:
+To create GAN-Intermediate images with latent space embedding interpolation, use the `generate_tfrecords.py` script **in the StyleGAN2-slideflow** repository. Flags that will be relevant include:
 
 - `--network`: Path to network PKL file (saved GAN model)
 - `--tiles`: Number of tiles per tfrecord to generate (manuscript uses 1000)
@@ -57,7 +57,7 @@ Subsequent steps will assume that the GAN tfrecords are in the folder `gan/`.
 
 
 ## Cross-validation & evaluation
-Once projects have been configured, models can be trained with `train.py`. Experiments are divided into total dataset sizes and have an assigned label. For reference, the experimental labels for this project are:
+Next, models are trained with `train.py`. Experiments are organized by dataset size, each with a corresponding label. The experimental labels for this project are:
 
 | ID | n_slides |
 |----|----------|
@@ -85,7 +85,7 @@ Once projects have been configured, models can be trained with `train.py`. Exper
 | ZC | 20       |
 | ZD | 10       |
 
-For each experimental label, experiments happen in 6 steps:
+Experiments are performed in 6 steps for each dataset size:
 
 1. Train cross-validation (CV) models for up to 10 epochs.
 2. Train CV models at the optimal epoch (1).
@@ -94,16 +94,16 @@ For each experimental label, experiments happen in 6 steps:
 5. Train models at the full dataset size without validation.
 6. Perform external evaluation of fully-trained models.
 
-Experiments are divided into three categories:
+We perform three types of experiments:
 
 - `reg`: Regular experiments with balanced outcomes (LUAD:LUSC).
-- `ratio`: Ratio testing experiments with class imbalance.
-- `gan`: Cross-validation experiments varying degrees of GAN slides in training/validation sets.
+- `ratio`: Experiments testing varying degrees of class imbalance.
+- `gan`: Cross-validation experiments using varying degrees of GAN slides in training/validation sets.
 
 Specify which category of experiment should be run by setting its flag to `True`. Specify the steps to run using the `--steps` flag. For example, to run steps 2-6 for the ratio experiments, do:
 
 ```
-python3 train.py --steps=2-6 --ratio=1
+python3 train.py --steps=2-6 --ratio=True
 ```
 
 ## Viewing results
@@ -116,5 +116,5 @@ Once all models have finished training (the published experiment included result
 Figures and output will then be saved in the `results/` folder. For example:
 
 ```
-python3 results.py --ratio=1 --umaps=1
+python3 results.py --ratio=True --umaps=True
 ```
