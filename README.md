@@ -6,22 +6,20 @@ Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding
 - [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1
 - Whole-slide images for training and validation
 
-Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a detailed guide to installing Slideflow and its preqrequisites.
+Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
 
 # Use
 
 ## Data preparation
-To reproduce results described in the manuscript, start by downloading whole-slide images (\*.svs files) from [The Cancer Genome Atlas (TCGA) data portal](https://portal.gdc.cancer.gov/), projects TCGA-LUAD and TCGA-LUSC.
+The first step to reproducing results described in our manuscript is downloading whole-slide images (\*.svs files) from [The Cancer Genome Atlas (TCGA) data portal](https://portal.gdc.cancer.gov/), projects TCGA-LUAD and TCGA-LUSC, and slides from the [Clinical Proteomics Tumor Analysis Consortium (CPTAC)](https://proteomics.cancer.gov/data-portal) data portal, projects TCGA-LUAD and TSCA-LSCC.
 
-Download whole-slide images from the [Clinical Proteomics Tumor Analysis Consortium (CPTAC)](https://proteomics.cancer.gov/data-portal) data portal, projects TCGA-LUAD and TSCA-LSCC.
-
-Then, configure experimental projects with Slideflow using the `configure.py` script, passing the directories to your training slides (TCGA) and evaluation slides (CPTAC). This step will extract image tiles from whole-slide images.
+We use Slideflow for deep learning model training, which organizes data and annotations into [Projects](https://slideflow.dev/project_setup.html). We provide a `configure.py` script which will automatically set up the TCGA training and CPTAC evaluation projects, using specified paths to the training slides (TCGA) and evaluation slides (CPTAC). This step will also segment the whole-slide images into individual tiles, storing them as `*.tfrecords` for later use.
 
 ```
 python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
 ```
 
-If using pathologist-annotated regions of interest (ROI) for the training dataset, these can be created as described in the [Slideflow documentation](https://slideflow.dev/pipeline.html). Pass the directory containing the ROIs in CSV format with the `--roi` argument.
+Pathologist-annotated regions of interest (ROI) can optionally be used for the training dataset, as described in the [Slideflow documentation](https://slideflow.dev/pipeline.html). To use ROIs, specify the path to the ROI CSV files with the `--roi` argument.
 
 ## GAN Training
 To train the class-conditional GAN (StyleGAN2) needed for latent space embedding interpolation, clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage fromat Slideflow uses. The GAN is trained on image tiles 512 x 512 pixels and 400 x 400 microns. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
