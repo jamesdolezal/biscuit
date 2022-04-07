@@ -22,7 +22,7 @@ python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
 Pathologist-annotated regions of interest (ROI) can optionally be used for the training dataset, as described in the [Slideflow documentation](https://slideflow.dev/pipeline.html). To use ROIs, specify the path to the ROI CSV files with the `--roi` argument.
 
 ## GAN Training
-The next step is training the class-conditional GAN (StyleGAN2) used for generating GAN-Intermediate images. Clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage format Slideflow uses. GAN will be trained 512 x 512 pixels images at 400 x 400 micron magnification. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
+The next step is training the class-conditional GAN (StyleGAN2) used for generating GAN-Intermediate images. Clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage format Slideflow uses. The GAN will be trained on 512 x 512 pixels images at 400 x 400 micron magnification. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
 
 Use the `train.py` script **in the StyleGAN2 repository** to train the GAN. Pass the `gan_config.json` file that the `configure.py` script generated earlier to the `--slideflow` flag.
 
