@@ -95,7 +95,7 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
     '''Load and process tile-level predictions from CSV.
 
     Args:
-        df (pandas.DataFrame): Unprocess DataFrame from reading tile-level predictions.
+        df (pandas.DataFrame): Unprocessed DataFrame from reading tile-level predictions.
         pred_thresh (float or str, optional): Tile-level prediction threshold. If 'detect', will auto-detect via
             Youden's J. Defaults to 0.5.
         patients (dict, optional): Dict mapping slides to patients, used for patient-level thresholding.
@@ -167,8 +167,8 @@ def process_group_predictions(df, pred_thresh, level):
         level: pd.Series(levels),
         'error': pd.Series(abs(yt - yp)),
         'uncertainty': pd.Series(u),
-        'correct': ((yp < pred_thresh) & (yt == 0)) | ((yp >= pred_thresh) & (yt == 1)), #pd.Series(abs(yt - yp) < 0.5),#
-        'incorrect': pd.Series(((yp < pred_thresh) & (yt == 1)) | ((yp >= pred_thresh) & (yt == 0))).astype(int),#pd.Series(abs(yt - yp) >= 0.5).astype(int)
+        'correct': ((yp < pred_thresh) & (yt == 0)) | ((yp >= pred_thresh) & (yt == 1)),
+        'incorrect': pd.Series(((yp < pred_thresh) & (yt == 1)) | ((yp >= pred_thresh) & (yt == 0))).astype(int),
         'y_true': pd.Series(yt),
         'y_pred': pd.Series(yp),
         'y_pred_bin': pd.Series(yp >= pred_thresh).astype(int)
