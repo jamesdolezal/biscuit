@@ -146,6 +146,9 @@ def process_group_predictions(df, pred_thresh, level):
     yt = np.array([grouped_mean.loc[grouped_mean[level]==l]['y_true'].to_numpy()[0] for l in levels], dtype=np.uint8)
     u =  np.array([grouped_mean.loc[grouped_mean[level]==l]['uncertainty'].to_numpy()[0] for l in levels])
 
+    if not len(yt):
+        raise errors.ROCFailedError("Unable to generate ROC; predictions are empty.")
+
     # Slide-level AUC
     log.debug(f'Calculating {level}-level ROC')
     l_fpr, l_tpr, l_thresh = metrics.roc_curve(yt, yp)
@@ -215,7 +218,11 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5, slide_pred_thresh
     log.debug(f"Number of tiles after filter: {len(df)}")
 
     # Build group-level predictions
-    s_df, _ = process_group_predictions(df, pred_thresh=slide_pred_thresh, level=level)
+    try:
+        s_df, _ = process_group_predictions(df, pred_thresh=slide_pred_thresh, level=level)
+    except errors.ROCFailedError:
+        log.error(f"Unable to process slide predictions")
+        return None, None, None, None, None
 
     if plot:
         plot_uncertainty(s_df, threshold=thresh_slide, kind=level, title=title)
