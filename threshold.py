@@ -4,6 +4,7 @@ import seaborn as sns
 import pandas as pd
 import slideflow as sf
 import utils
+import errors
 
 from errors import *
 from skmisc.loess import loess
@@ -14,9 +15,6 @@ color_palette = {
     'negative': (0.12156862745098039, 0.4666666666666667, 0.7058823529411765), # blue
     'positive': (1.0, 0.4980392156862745, 0.054901960784313725)				   # orange
 }
-
-class PredsContainNaNError(Exception):
-    pass
 
 def plot_uncertainty(df, kind, threshold=None, title=None):
     '''Plots figure of tile or slide-level predictions vs. uncertainty with matplotlib.
@@ -107,7 +105,7 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
 
     # Tile-level AUC
     if np.isnan(df['y_pred'].to_numpy()).sum():
-        raise PredsContainNaNError
+        raise errors.PredsContainNaNError
     fpr, tpr, thresh = metrics.roc_curve(df['y_true'].to_numpy(), df['y_pred'].to_numpy())
     tile_auc = metrics.auc(fpr, tpr)
     try:
@@ -156,7 +154,10 @@ def process_group_predictions(df, pred_thresh, level):
     log.debug('Calculating optimal threshold')
 
     if pred_thresh == 'detect':
-        pred_thresh = l_thresh[list(zip(l_tpr,l_fpr)).index(max(zip(l_tpr,l_fpr), key=lambda x: x[0]-x[1]))]
+        try:
+            pred_thresh = l_thresh[list(zip(l_tpr,l_fpr)).index(max(zip(l_tpr,l_fpr), key=lambda x: x[0]-x[1]))]
+        except ValueError:
+            raise errors.ROCFailedError(f"Unable to generate {level}-level ROC")
         log.debug(f"Using optimal, auto-detected prediction threshold: {pred_thresh:.4f}")
     else:
         log.debug(sf.util.blue(f"Using {level} prediction threshold: {pred_thresh:.4f}"))
@@ -276,7 +277,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
 
     try:
         df, tile_pred_thresh = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
-    except PredsContainNaNError:
+    except errors.PredsContainNaNError:
         log.error(f"Tile-level predictions contain NaNs; unable to process.")
         return None, None, None, None, None
 
@@ -300,7 +301,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
     # Build slide-level predictions
     try:
         s_df, slide_pred_thresh = process_group_predictions(df, pred_thresh=slide_pred_thresh, level='slide')
-    except ValueError:
+    except errors.ROCFailedError:
         log.error(f"Unable to process slide predictions")
         return None, None, None, None, None
 

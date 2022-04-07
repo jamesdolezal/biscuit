@@ -12,3 +12,9 @@ class EvalError(Exception):
 
 class ThresholdError(Exception):
     pass
+
+class ROCFailedError(Exception):
+    pass
+
+class PredsContainNaNError(Exception):
+    pass

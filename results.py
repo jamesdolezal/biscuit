@@ -136,13 +136,13 @@ def show_results(
 
         # --- Figure 4a -----
         # Save the regular heatmap with predictions
-        #hm = sf.Heatmap(slide, aa_model, stride_div=1)
-        #hm.save(join('results', 'heatmap_full'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
+        hm = sf.Heatmap(slide, aa_model, stride_div=1)
+        hm.save(join('results', 'heatmap_full'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
 
         # Save the heatmap with masked, high-confidence predictions
-        #uq_mask = hm.uncertainty[:, :, 0] > aa_tile_uncertainty_threshold
-        #hm.logits[uq_mask, :] = [-1, -1]
-        #hm.save(join('results', 'heatmap_high_confidence'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
+        uq_mask = hm.uncertainty[:, :, 0] > aa_tile_uncertainty_threshold
+        hm.logits[uq_mask, :] = [-1, -1]
+        hm.save(join('results', 'heatmap_high_confidence'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
 
         # --- Figure 4b -----
         # Save the highest and lowest uncertainty tiles
