@@ -40,9 +40,9 @@ def train_models(steps=None, reg=True, ratio=True, gan=False, train_project=None
     # Configure regular experiments
     if reg:
         reg_exp = experiment.config('{}', EXP_NAME_MAP, 1, order='forward')
-        reg2_exp = experiment.config('{}2', EXP_NAME_MAP, 1, order='forward')
+        reg2_exp = experiment.config('{}2', EXP_NAME_MAP, 1, order='forward', order_col='order2')
         reverse_exp = experiment.config('{}_R', EXP_NAME_MAP, 1, order='reverse')
-        reverse2_exp = experiment.config('{}_R2', EXP_NAME_MAP, 1, order='reverse')
+        reverse2_exp = experiment.config('{}_R2', EXP_NAME_MAP, 1, order='reverse', order_col='order2')
         to_run += [reg_exp, reg2_exp, reverse_exp, reverse2_exp]
 
     # Configure 3:1 and 10:1 ratio experiments
