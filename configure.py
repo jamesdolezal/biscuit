@@ -9,8 +9,8 @@ from os.path import exists, join, abspath
 @click.command()
 @click.option('--train_slides', type=str, help='Directory to training slides, for cross-validation', required=True)
 @click.option('--val_slides', type=str, help='Directory to external evaluation slides, for evaluation')
-@click.option('--train_anns', type=str, help='Directory to annotation file for training data (CSV)', default='tcga.csv', show_default=True)
-@click.option('--val_anns', type=str, help='Directory to annotation file for training data (CSV)', default='cptac.csv', show_default=True)
+@click.option('--train_anns', type=str, help='Directory to annotation file for training data (CSV)', default='annotations/tcga.csv', show_default=True)
+@click.option('--val_anns', type=str, help='Directory to annotation file for training data (CSV)', default='annotations/cptac.csv', show_default=True)
 @click.option('--train_roi', type=str, help='Directory to CSV ROI files, for cross-validation')
 def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val_anns=None, out='projects'):
 
