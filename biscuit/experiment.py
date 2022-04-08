@@ -94,7 +94,7 @@ def train_nested_cv(P, hp, label, outer_k=3, inner_k=5, **kwargs):
                 print(f'Only running k-folds {inner_k_to_run} for nested cross-val k{ki+1} in experiment {label}; some k-folds already done.')
             train(P, hp, f"{label}-k{ki+1}", {'slide': sf.util.get_slides_from_model_manifest(k_model, dataset='training')}, val_k_fold=inner_k, val_k=inner_k_to_run, save_predictions=True, **kwargs)
 
-# --- Plotting functions --------------------------------------------------------------------------------------------
+# --- Plotting functions ----------------------------------------------------------------------------------------------
 
 def plot_uncertainty_calibration(project, exp, tile_thresh, slide_thresh, pred_thresh):
     '''Plots a graph of predictions vs. uncertainty.
@@ -237,6 +237,75 @@ def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
     plt.subplots_adjust(bottom=0.2)
     plt.savefig(join(OUT, 'pancan_preds.svg'))
     return slide_preds
+
+# --- Experiment utility functions ------------------------------------------------------------------------------------
+
+def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None, threshold_params=None):
+    '''Detects tile- and slide-level UQ thresholds and slide-level prediction thresholds from nested cross-validation.'''
+
+    if id is None:
+        id = label
+    if threshold_params is None:
+        threshold_params = {
+            'tile_pred_thresh':     'detect',
+            'slide_pred_thresh':    'detect',
+            'plot':                 False,
+            'y_pred_header':        utils.y_pred_header,
+            'y_true_header':        utils.y_true_header,
+            'uncertainty_header':   utils.uncertainty_header,
+            'patients':             P.dataset().patients()
+        }
+    all_tile_uq_thresh = []
+    all_slide_uq_thresh = []
+    all_slide_pred_thresh = []
+    df = pd.DataFrame()
+    for k in range(1, outer_k+1):
+        k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'{label}-k{k}', k=inner_k)]
+        val_path = join(utils.find_model(P, f'{label}', kfold=k), 'tile_predictions_val_epoch1.csv')
+        if not exists(val_path): raise FileNotFoundError
+        tile_thresh, _, _, _ = threshold.from_cv(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
+        _, slide_thresh, tile_pred_thresh, slide_pred_thresh = threshold.from_cv(k_preds, tile_uq_thresh=tile_thresh, slide_uq_thresh='detect', **threshold_params)
+
+        all_tile_uq_thresh += [tile_thresh]
+        all_slide_uq_thresh += [slide_thresh]
+        all_slide_pred_thresh += [slide_pred_thresh]
+        tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
+        tile_pred_df.rename(columns={utils.y_pred_header: 'y_pred', utils.y_true_header: 'y_true', utils.uncertainty_header: 'uncertainty'}, inplace=True)
+
+        def get_auc_by_level(level):
+            auc, perc, _, _, _ = threshold.apply(
+                tile_pred_df,
+                thresh_tile=tile_thresh,
+                thresh_slide=slide_thresh,
+                tile_pred_thresh=tile_pred_thresh,
+                slide_pred_thresh=slide_pred_thresh,
+                plot=False,
+                patients=P.dataset().patients(),
+                level=level
+            )
+            return auc, perc
+
+        pt_auc, pt_perc = get_auc_by_level('patient')
+        slide_auc, slide_perc = get_auc_by_level('slide')
+
+        df = df.append({
+            'id': id,
+            'n_slides': len(sf.util.get_slides_from_model_manifest(utils.find_model(P, f'{label}', kfold=k, epoch=1), dataset=None)),
+            'fold': k,
+            'uq': 'include',
+            'patient_auc': pt_auc,
+            'patient_uq_perc': pt_perc,
+            'slide_auc': slide_auc,
+            'slide_uq_perc': slide_perc
+        }, ignore_index=True)
+
+    thresholds = {
+        'tile_uq': mean(all_tile_uq_thresh),
+        'slide_uq': mean(all_slide_uq_thresh),
+        'slide_pred': mean(all_slide_pred_thresh),
+    }
+
+    return df, thresholds
 
 # --- Experiment functions --------------------------------------------------------------------------------------------
 
@@ -557,96 +626,41 @@ def results(all_exp, uq=True, eval=True, plot=False):
     # === Get & Apply Nested UQ Threshold =====================================
 
     if uq:
-        threshold_params = {
-            'tile_pred_thresh':     'detect',
-            'slide_pred_thresh':    'detect',
-            'plot':                 False,
-            'y_pred_header':        utils.y_pred_header,
-            'y_true_header':        utils.y_true_header,
-            'uncertainty_header':   utils.uncertainty_header,
-            'patients':             P.dataset().patients()
-        }
-
         pb = tqdm(all_exp)
         for exp in pb:
             # Skip UQ for experiments with n_slides < 100
             if exp in ('V', 'W', 'X', 'Y', 'Z', 'ZA', 'ZB', 'ZC', 'ZD'):
                 continue
             pb.set_description(f"Calculating thresholds (exp {exp})...")
-            all_tile_uq_thresh = []
-            all_slide_uq_thresh = []
-            all_slide_pred_thresh = []
-            skip = False
+            try:
+               _df, thresholds = thresholds_from_nested_cv(P, f'EXP_{exp}_UQ', id=exp)
+               df = df.append(_df, ignore_index=True)
+            except (MatchError, FileNotFoundError, ModelNotFoundError) as e:
+                log.debug(str(e))
+                log.debug(f"Skipping UQ crossval thresholding results for {exp}; not found")
+                continue
+            except ThresholdError as e:
+                log.debug(str(e))
+                log.debug(f'Skipping UQ crossval thresholding results for {exp}; could not find thresholds in cross-validation')
+                continue
 
-            for k in range(1, 4):
-                try:
-                    k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'EXP_{exp}_UQ-k{k}', k=5)]
-                    val_path = join(utils.find_model(P, f'EXP_{exp}_UQ', kfold=k), 'tile_predictions_val_epoch1.csv')
-                    if not exists(val_path): raise FileNotFoundError
-                    tile_thresh, _, _, _ = threshold.from_cv(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
-                    _, slide_thresh, tile_pred_thresh, slide_pred_thresh = threshold.from_cv(k_preds, tile_uq_thresh=tile_thresh, slide_uq_thresh='detect', **threshold_params)
-                except (MatchError, FileNotFoundError, ModelNotFoundError) as e:
-                    log.debug(str(e))
-                    log.debug(f"Skipping UQ crossval thresholding results for {exp}; not found")
-                    skip = True
-                    break
-                except ThresholdError as e:
-                    log.debug(str(e))
-                    log.debug(f'Skipping UQ crossval thresholding results for {exp}; could not find thresholds in cross-validation')
-                    skip = True
-                    break
-
-                all_tile_uq_thresh += [tile_thresh]
-                all_slide_uq_thresh += [slide_thresh]
-                all_slide_pred_thresh += [slide_pred_thresh]
-                tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
-                tile_pred_df.rename(columns={utils.y_pred_header: 'y_pred', utils.y_true_header: 'y_true', utils.uncertainty_header: 'uncertainty'}, inplace=True)
-
-                def get_auc_by_level(level):
-                    auc, perc, _, _, _ = threshold.apply(
-                        tile_pred_df,
-                        thresh_tile=tile_thresh,
-                        thresh_slide=slide_thresh,
-                        tile_pred_thresh=tile_pred_thresh,
-                        slide_pred_thresh=slide_pred_thresh,
-                        plot=False,
-                        patients=P.dataset().patients(),
-                        level=level
-                    )
-                    return auc, perc
-
-                pt_auc, pt_perc = get_auc_by_level('patient')
-                slide_auc, slide_perc = get_auc_by_level('slide')
-
-                df = df.append({
-                    'id': exp,
-                    'n_slides': len(sf.util.get_slides_from_model_manifest(utils.find_model(P, f'EXP_{exp}_UQ', kfold=k, epoch=1), dataset=None)),
-                    'fold': k,
-                    'uq': 'include',
-                    'patient_auc': pt_auc,
-                    'patient_uq_perc': pt_perc,
-                    'slide_auc': slide_auc,
-                    'slide_uq_perc': slide_perc
-                }, ignore_index=True)
-
-            if not skip:
-                tile_uq_thresholds[exp] = mean(all_tile_uq_thresh)
-                slide_uq_thresholds[exp] = mean(all_slide_uq_thresh)
-                pred_uq_thresholds[exp] = mean(all_slide_pred_thresh)
+            tile_uq_thresholds[exp] = thresholds['tile_uq']
+            slide_uq_thresholds[exp] = thresholds['slide_uq']
+            pred_uq_thresholds[exp] = thresholds['slide_pred']
 
             # Show CV uncertainty calibration
             if plot and exp == 'AA':
                 plot_uncertainty_calibration(
                     project=P,
                     exp=exp,
-                    tile_thresh=tile_uq_thresholds[exp],
-                    slide_thresh=slide_uq_thresholds[exp],
-                    pred_thresh=pred_uq_thresholds[exp]
+                    tile_thresh=thresholds['tile_uq'],
+                    slide_thresh=thresholds['slide_uq'],
+                    pred_thresh=thresholds['slide_pred']
                 )
 
             # Show PANCAN OOD predictions
             if plot and exp == 'AA':
-                plot_pancan(tile_thresh=tile_uq_thresholds[exp], slide_thresh=slide_uq_thresholds[exp], pred_thresh=pred_uq_thresholds[exp])
+                plot_pancan(tile_thresh=thresholds['tile_uq'], slide_thresh=thresholds['slide_uq'], pred_thresh=thresholds['slide_pred'])
 
     # === Show external validation results ====================================
 
