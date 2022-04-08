@@ -1,11 +1,11 @@
 import click
 import multiprocessing
-import experiment
 import re
 from typing import List
 from os.path import join
-
-from experiment import EXP_NAME_MAP
+from biscuit import experiment
+from biscuit.errors import *
+from biscuit.experiment import EXP_NAME_MAP
 
 # Assumes a TCGA LUAD v LUSC project exists,
 # with tiles already extracted.

@@ -1,7 +1,7 @@
 import os
 import click
 import slideflow as sf
-import experiment
+from biscuit import experiment
 from os.path import exists, join, abspath
 
 #----------------------------------------------------------------------------

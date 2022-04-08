@@ -2,15 +2,13 @@ import os
 import csv
 import shutil
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 import slideflow as sf
 import matplotlib.colors as colors
 
+from biscuit.errors import *
 from delong import delong_roc_variance
-from errors import *
 from sklearn import metrics
-from tabulate import tabulate
 from scipy import stats
 from statistics import mean, variance
 from os.path import join

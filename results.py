@@ -1,20 +1,18 @@
 import os
 import click
-import experiment
 import copy
 import numpy as np
-import utils
 import slideflow as sf
 import matplotlib.pyplot as plt
 import tensorflow as tf
-import threshold
-from errors import *
+from biscuit import experiment, utils, threshold
+from biscuit.errors import *
+from biscuit.experiment import EXP_NAME_MAP
 
 from PIL import Image
 from statistics import mean
 from slideflow.util import log
 from os.path import join, exists
-from experiment import EXP_NAME_MAP
 
 @click.command()
 @click.option('--train_project', type=str, help='Manually specify location of training project')

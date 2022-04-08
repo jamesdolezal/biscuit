@@ -3,10 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import slideflow as sf
-import utils
-import errors
 
-from errors import *
+from biscuit import utils, errors
+from biscuit.errors import *
 from skmisc.loess import loess
 from sklearn import metrics
 from slideflow.util import log

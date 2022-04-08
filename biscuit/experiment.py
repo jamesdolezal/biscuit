@@ -5,11 +5,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
-import utils
-import threshold
 
+from biscuit import utils, threshold
+from biscuit.errors import *
 from skmisc.loess import loess
-from errors import *
 from slideflow.util import log
 from scipy import stats
 from tqdm import tqdm
@@ -63,18 +62,17 @@ def train(P, hp, label, filters, save_predictions=False, save_model=False, **kwa
     '''
 
     P.train(
-        utils.OUTCOME,
+        (utils.OUTCOME if 'outcome_label_headers' not in kwargs else kwargs['outcome_label_headers']),
         exp_label=label,
         filters=filters,
         params=hp,
         save_predictions=save_predictions,
         save_model=save_model,
-        multi_gpu=False,
         validate_on_batch=32,
         **kwargs
     )
 
-def train_nested_cv(P, hp, label, **kwargs):
+def train_nested_cv(P, hp, label, outer_k=3, inner_k=5, **kwargs):
     '''Trains a model with nested cross-validation (outer_k=3, inner_k=5), skipping already-generated models.
 
     Args:
@@ -86,34 +84,15 @@ def train_nested_cv(P, hp, label, **kwargs):
         None
     '''
 
-    k1, k2, k3 = utils.find_cv(P, label)
-
-    # Nested crossval for k1
-    val_k = [k for k in range(1, 6) if not utils.model_exists(P, f'{label}-k1', kfold=k)]
-    if not len(val_k):
-        print(f'Skipping Step 5-k1 for experiment {label}; already done.')
-    else:
-        if val_k != list(range(1,6)):
-            print(f'Only running k-folds {val_k} for Step 5-k1 in experiment {label}; some k-folds already done.')
-        train(P, hp, f"{label}-k1", {'slide': sf.util.get_slides_from_model_manifest(k1, dataset='training')}, val_k_fold=5, val_k=val_k, save_predictions=True, **kwargs)
-
-    # Nested crossval for k2
-    val_k = [k for k in range(1, 6) if not utils.model_exists(P, f'{label}-k2', kfold=k)]
-    if not len(val_k):
-        print(f'Skipping Step 5-k2 for experiment {label}; already done.')
-    else:
-        if val_k != list(range(1,6)):
-            print(f'Only running k-folds {val_k} for Step 5-k2 in experiment {label}; some k-folds already done.')
-        train(P, hp, f"{label}-k2", {'slide': sf.util.get_slides_from_model_manifest(k2, dataset='training')}, val_k_fold=5, val_k=val_k, save_predictions=True, **kwargs)
-
-    # Nested crossval for k3
-    val_k = [k for k in range(1, 6) if not utils.model_exists(P, f'{label}-k3', kfold=k)]
-    if not len(val_k):
-        print(f'Skipping Step 5-k3 for experiment {label}; already done.')
-    else:
-        if val_k != list(range(1,6)):
-            print(f'Only running k-folds {val_k} for Step 5-k3 in experiment {label}; some k-folds already done.')
-        train(P, hp, f"{label}-k3", {'slide': sf.util.get_slides_from_model_manifest(k3, dataset='training')}, val_k_fold=5, val_k=val_k, save_predictions=True, **kwargs)
+    k_models = utils.find_cv(P, label, k=outer_k)
+    for ki, k_model in enumerate(k_models):
+        inner_k_to_run = [k for k in range(1, inner_k+1) if not utils.model_exists(P, f'{label}-k{ki+1}', kfold=k)]
+        if not len(inner_k_to_run):
+            print(f'Skipping nested cross-val (inner k{ki+1} for experiment {label}; already done.')
+        else:
+            if inner_k_to_run != list(range(1, inner_k+1)):
+                print(f'Only running k-folds {inner_k_to_run} for nested cross-val k{ki+1} in experiment {label}; some k-folds already done.')
+            train(P, hp, f"{label}-k{ki+1}", {'slide': sf.util.get_slides_from_model_manifest(k_model, dataset='training')}, val_k_fold=inner_k, val_k=inner_k_to_run, save_predictions=True, **kwargs)
 
 # --- Plotting functions --------------------------------------------------------------------------------------------
 
