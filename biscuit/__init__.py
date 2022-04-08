@@ -1,3 +1,4 @@
+from biscuit import hp
 from biscuit import experiment
 from biscuit import utils
 from biscuit import errors
