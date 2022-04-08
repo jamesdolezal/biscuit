@@ -7,7 +7,7 @@ import slideflow as sf
 import matplotlib.colors as colors
 
 from biscuit.errors import *
-from delong import delong_roc_variance
+from biscuit.delong import delong_roc_variance
 from sklearn import metrics
 from scipy import stats
 from statistics import mean, variance
