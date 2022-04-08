@@ -136,11 +136,11 @@ def show_results(
 
         # --- Figure 4a -----
         # Save the regular heatmap with predictions
-        hm = sf.Heatmap(slide, aa_model, stride_div=1, uq=True)
+        hm = sf.Heatmap(slide, aa_model, stride_div=1)
         hm.save(join('results', 'heatmap_full'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
 
         # Save the heatmap with masked, high-confidence predictions
-        uq_mask = hm.uncertainty > aa_tile_uncertainty_threshold
+        uq_mask = hm.uncertainty[:, :, 0] > aa_tile_uncertainty_threshold
         hm.logits[uq_mask, :] = [-1, -1]
         hm.save(join('results', 'heatmap_high_confidence'), cmap=utils.truncate_colormap(plt.get_cmap('PRGn'), 0.1, 0.9))
 
@@ -150,28 +150,26 @@ def show_results(
             os.makedirs(join('results', 'uq_excl'))
         if not exists(join('results', 'uq_incl')):
             os.makedirs(join('results', 'uq_incl'))
-        uq = sf.model.tensorflow.UncertaintyInterface(aa_model)
+        interface = sf.model.tensorflow.UncertaintyInterface(aa_model)
         wsi = sf.WSI(slide, 299, 302, roi_method='ignore')
         gen = wsi.build_generator(shuffle=False, include_loc='grid', show_progress=True)
         for tile in gen():
             image = tile['image']
-            if uq.wsi_normalizer:
-                norm_image = uq.wsi_normalizer.rgb_to_rgb(image)
+            if interface.wsi_normalizer:
+                norm_image = interface.wsi_normalizer.rgb_to_rgb(image)
             else:
                 norm_image = image
             parsed_image = tf.image.per_image_standardization(norm_image)
             parsed_image.set_shape([wsi.tile_px, wsi.tile_px, 3])
-            uq_out = uq(tf.expand_dims(parsed_image, axis=0))[0]
-            uncertainty = uq_out[-1]
-            tilename = f"{uncertainty:.4f}-{tile['loc'][0]}-{tile['loc'][1]}.png"
-            if uncertainty > aa_tile_uncertainty_threshold:
+            logits, uncertainty = interface(tf.expand_dims(parsed_image, axis=0))
+            tilename = f"{uncertainty[0][0]:.4f}-{tile['loc'][0]}-{tile['loc'][1]}.png"
+            if uncertainty[0][0] > aa_tile_uncertainty_threshold:
                 Image.fromarray(tile['image']).save(join('results', 'uq_excl', tilename))
             else:
                 Image.fromarray(tile['image']).save(join('results', 'uq_incl', tilename))
 
-    # Figure 5
+    # --- Plot UMAPs (Figure 5) -----------------------------------------------
     if umaps:
-        # --- Plot UMAPs ------------------------------------------------------
 
         df = cP.generate_features(aa_model, max_tiles=10)
         mosaic = cP.generate_mosaic(df)
@@ -188,15 +186,14 @@ def show_results(
         mosaic.slide_map.save(join('results', 'umap_binary_pred.svg'), s=10)
 
         # Figure 5d
-        mosaic.slide_map.label_by_logits(2)
+        mosaic.slide_map.label_by_uncertainty()
         mosaic.slide_map.save(join('results', 'umap_uncertainty.svg'), s=10, hue_norm=(0, 0.15))
 
         # Figure 5e
         mosaic.slide_map.labels = mosaic.slide_map.labels < aa_tile_uncertainty_threshold
         mosaic.slide_map.save(join('results', 'umap_confidence.svg'), s=10)
 
-    # --- Analyze GAN (overview, non-UQ) --------------------------------------
-    # Figure 6
+    # --- Analyze GAN (overview, non-UQ) (Figure 6)----------------------------
     if gan:
         gan_df, _ = experiment.results(gan_exp, uq=False, plot=False)
         reg_df, _ = experiment.results(reg1_exp, uq=False, plot=False)

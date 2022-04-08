@@ -285,8 +285,8 @@ def config(name_pattern, subset, ratio, **kwargs):
             n2 = EXP_NAME_MAP[exp] - n1
 
             config.update({
-                exp_name:     {utils.OUTCOME1: n1, utils.OUTCOME2: n2, **kwargs},
-                exp_name+'i': {utils.OUTCOME1: n2, utils.OUTCOME2: n1, **kwargs}
+                exp_name:     {'out1': n1, 'out2': n2, **kwargs},
+                exp_name+'i': {'out1': n2, 'out2': n1, **kwargs}
             })
 
         else:
@@ -296,7 +296,7 @@ def config(name_pattern, subset, ratio, **kwargs):
             else:
                 n_out1 = n_out2 = int(EXP_NAME_MAP[exp] / 2)
             config.update({
-                exp_name: {utils.OUTCOME1: n_out1, utils.OUTCOME2: n_out2, **kwargs},
+                exp_name: {'out1': n_out1, 'out2': n_out2, **kwargs},
             })
 
 
@@ -366,7 +366,7 @@ def run(all_exp, steps=None, hp='nature2022'):
     # === Initialize projects & prepare experiments ===========================
     print(sf.util.bold("Initializing experiments..."))
     P = sf.Project(TRAIN_PATH)
-    eval_Ps = [sf.Project(path) for path in EVAL_PATHS]
+    eval_Ps = [(sf.Project(path) if path != 'not_configured' else None) for path in EVAL_PATHS]
 
     exp_annotations = join(P.root, 'experiments.csv')
     if P.annotations != exp_annotations:
@@ -457,7 +457,7 @@ def run(all_exp, steps=None, hp='nature2022'):
         exp_hp.epochs = [1]
         exp_hp.uq = True
         for exp in all_exp:
-            total_slides = all_exp[exp][utils.OUTCOME2] + all_exp[exp][utils.OUTCOME1]
+            total_slides = all_exp[exp]['out2'] + all_exp[exp]['out1']
             if total_slides >= 50:
                 train_nested_cv(P, exp_hp, f'EXP_{exp}_UQ', val_strategy='k-fold') # NO site-preservation for nested UQ
             else:
