@@ -1,5 +1,10 @@
 # BISCUIT <img src="https://i.imgur.com/VGK46TB.png" width="280px" align="right" />
-Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding
+Experimental files to accompany the manuscript submission  _Uncertainty Estimation Enables High-Confidence Deep Learning Predictions for Histopathology_
+
+_**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
+
+## Disclaimer
+These files and the accompanying package `biscuit` are considered pre-release. They have been published to assist with the review process. Further updates to expand generalizability and documentation are forthcoming.
 
 # Requirements
 - [Tensorflow](https://tensorflow.org) >=2.7 (and associated pre-requisites)
