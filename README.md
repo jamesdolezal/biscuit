@@ -7,13 +7,14 @@ _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Unce
 These files and the accompanying package `biscuit` are considered pre-release. They have been published to assist with the review process. Further updates to expand generalizability and documentation are forthcoming.
 
 # Requirements
-- [Tensorflow](https://tensorflow.org) >=2.7 (and associated pre-requisites)
-- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1 (and associated pre-requisites)
+- Python >= 3.7
+- [Tensorflow](https://tensorflow.org) >=2.7.0 (and associated pre-requisites)
+- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1* (and associated pre-requisites)
 - Whole-slide images for training and validation
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
 
-_**Note**: At the time of manuscript submission, Slideflow 1.1 has not been fully released. Please install and use Version 1.1 release candidate 1 (1.1rc1)._
+*_**Note**: At the time of manuscript submission, Slideflow 1.1 has not been fully released. Please use Version 1.1 Release Candidate 1 (1.1rc1)._
 
 # Reproducing Results
 
