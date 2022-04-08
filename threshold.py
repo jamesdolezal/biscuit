@@ -141,7 +141,7 @@ def process_group_predictions(df, pred_thresh, level):
     '''From a given dataframe of tile-level predictions, calculate group-level predictions and uncertainty.'''
 
     # Calculate group-level predictions
-    log.debug(f'Calculating {level}-level means')
+    log.debug(f'Calculating {level}-level means from {len(df)} tile predictions')
     levels = pd.unique(df[level])
     grouped_mean = df[[level, 'y_pred', 'y_true', 'uncertainty']].groupby(level, as_index=False).mean()
     yp = np.array([grouped_mean.loc[grouped_mean[level]==l]['y_pred'].to_numpy()[0] for l in levels])
@@ -203,15 +203,19 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5, slide_pred_thresh
     assert keep in ('high_confidence', 'low_confidence')
     assert not (level == 'patient' and patients is None)
 
-    log.debug(sf.util.purple(f"Using tile uncertainty threshold of {thresh_tile:.5f}"))
+    log.debug(sf.util.purple(f"Applying thresholds with tile uncertainty threshold of {thresh_tile:.5f}"))
+    if patients: df['patient'] = df['slide'].map(patients)
+    log.debug(f"Number of {level}s before tile-level filter: {pd.unique(df[level]).shape[0]}")
+    log.debug(f"Number of tiles before tile-level filter: {len(df)}")
+
     df, _ = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
     num_pre_filter = pd.unique(df[level]).shape[0]
 
     if thresh_tile:
         df = df[df['uncertainty'] < thresh_tile]
 
-    log.debug(f"Number of {level} after filter: {pd.unique(df[level]).shape[0]}")
-    log.debug(f"Number of tiles after filter: {len(df)}")
+    log.debug(f"Number of {level}s after tile-level filter: {pd.unique(df[level]).shape[0]}")
+    log.debug(f"Number of tiles after tile-level filter: {len(df)}")
 
     # Build group-level predictions
     s_df, _ = process_group_predictions(df, pred_thresh=slide_pred_thresh, level=level)
@@ -274,6 +278,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
         Tile UQ threshold, Slide UQ threshold, AUC, Tile prediction threshold, Slide prediction threshold
     '''
 
+    log.debug("Detecting thresholds...")
     try:
         df, tile_pred_thresh = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
     except PredsContainNaNError:
