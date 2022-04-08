@@ -48,8 +48,8 @@ def get_model_results(path, outcome=None):
 
     return pt_auc, pt_ap, slide_auc, slide_ap, tile_auc, tile_ap, opt_thresh
 
-def find_cv_early_stop(P, label, k=3):
-    cv_folders = find_cv(P, label, k=k)
+def find_cv_early_stop(P, label, k=3, outcome=None):
+    cv_folders = find_cv(P, label, k=k, outcome=outcome)
     early_stop_batch = []
     for cv_folder in cv_folders:
         csv = pd.read_csv(join(cv_folder, 'results_log.csv'))
@@ -65,30 +65,32 @@ def find_cv_early_stop(P, label, k=3):
 
 # --- Utility functions for finding experiment models -----------------------------------------------------------------
 
-def find_model(P, label, epoch=None, kfold=None):
+def find_model(P, label, epoch=None, kfold=None, outcome=None):
+    if outcome is None: outcome=OUTCOME
     tail = '' if kfold is None else f'-kfold{kfold}'
-    model_name = f'{OUTCOME}-{label}-HP0{tail}'
+    model_name = f'{outcome}-{label}-HP0{tail}'
     matching = [o for o in os.listdir(P.models_dir) if o[6:] == model_name]
     if len(matching) > 1:
         raise MultipleModelsFoundError(f"Multiple matching model experiments found matching {model_name}")
     elif not len(matching):
         raise ModelNotFoundError(f"No matching model found matching {model_name}.")
     elif epoch is not None:
-        return join(P.models_dir, matching[0], f'{OUTCOME}-{label}-HP0{tail}_epoch{epoch}')
+        return join(P.models_dir, matching[0], f'{outcome}-{label}-HP0{tail}_epoch{epoch}')
     else:
         return join(P.models_dir, matching[0])
 
-def model_exists(P, label, epoch=None, kfold=None):
+def model_exists(P, label, epoch=None, kfold=None, outcome=None):
     try:
-        find_model(P, label, epoch, kfold)
+        find_model(P, label, epoch, kfold=kfold, outcome=outcome)
         return True
     except ModelNotFoundError:
         return False
 
-def find_cv(P, label, epoch=None, k=3):
-    return [find_model(P, label, epoch=epoch, kfold=_k) for _k in range(1, k+1)]
+def find_cv(P, label, epoch=None, k=3, outcome=None):
+    return [find_model(P, label, epoch=epoch, kfold=_k, outcome=outcome) for _k in range(1, k+1)]
 
-def find_eval(P, label, epoch=1):
+def find_eval(P, label, epoch=1, outcome=None):
+    if outcome is None: outcome=outcome
     matching = [o for o in os.listdir(P.eval_dir) if o[11:] == f'{OUTCOME}-{label}-HP0_epoch{epoch}']
     if len(matching) > 1:
         raise MultipleModelsFoundError(f"Multiple matching eval experiments found for label {label}")

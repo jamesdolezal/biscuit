@@ -241,7 +241,7 @@ def plot_pancan(tile_thresh, slide_thresh, pred_thresh):
 
 # --- Experiment utility functions ------------------------------------------------------------------------------------
 
-def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None, threshold_params=None):
+def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None, threshold_params=None, outcome=None):
     '''Detects tile- and slide-level UQ thresholds and slide-level prediction thresholds from nested cross-validation.'''
 
     if id is None:
@@ -261,8 +261,8 @@ def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None, threshold
     all_slide_pred_thresh = []
     df = pd.DataFrame()
     for k in range(1, outer_k+1):
-        k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'{label}-k{k}', k=inner_k)]
-        val_path = join(utils.find_model(P, f'{label}', kfold=k), 'tile_predictions_val_epoch1.csv')
+        k_preds = [join(folder, 'tile_predictions_val_epoch1.csv') for folder in utils.find_cv(P, f'{label}-k{k}', k=inner_k, outcome=outcome)]
+        val_path = join(utils.find_model(P, f'{label}', kfold=k, outcome=outcome), 'tile_predictions_val_epoch1.csv')
         if not exists(val_path): raise FileNotFoundError
         tile_thresh, _, _, _ = threshold.from_cv(k_preds, tile_uq_thresh='detect', slide_uq_thresh=None, **threshold_params)
         _, slide_thresh, tile_pred_thresh, slide_pred_thresh = threshold.from_cv(k_preds, tile_uq_thresh=tile_thresh, slide_uq_thresh='detect', **threshold_params)
@@ -288,10 +288,11 @@ def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None, threshold
 
         pt_auc, pt_perc = get_auc_by_level('patient')
         slide_auc, slide_perc = get_auc_by_level('slide')
+        model = utils.find_model(P, f'{label}', kfold=k, epoch=1, outcome=outcome)
 
         df = df.append({
             'id': id,
-            'n_slides': len(sf.util.get_slides_from_model_manifest(utils.find_model(P, f'{label}', kfold=k, epoch=1), dataset=None)),
+            'n_slides': len(sf.util.get_slides_from_model_manifest(model, dataset=None)),
             'fold': k,
             'uq': 'include',
             'patient_auc': pt_auc,
