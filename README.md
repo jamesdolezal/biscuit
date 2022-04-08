@@ -1,5 +1,5 @@
 # BISCUIT <img src="https://i.imgur.com/VGK46TB.png" width="280px" align="right" />
-Experimental files to accompany the manuscript submission  _Uncertainty Estimation Enables High-Confidence Deep Learning Predictions for Histopathology_
+Experimental files to accompany the manuscript submission  _Uncertainty Estimation Enables High-Confidence Deep Learning Predictions for Histopathology_.
 
 _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
 
@@ -12,6 +12,8 @@ These files and the accompanying package `biscuit` are considered pre-release. T
 - Whole-slide images for training and validation
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
+
+_**Note**: At the time of manuscript submission, Slideflow 1.1 has not been fully released. Please install and use Version 1.1 release candidate 1 (1.1rc1)._
 
 # Reproducing Results
 
