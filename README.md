@@ -116,7 +116,7 @@ python3 train.py --steps=2-6 --ratio=True
 
 ## Viewing results
 
-Once all models have finished training (the published experiment included results from over 3000 models, so this may take a while), results can be viewed with the `results.py` script. The same experimental category flags, `--reg`, `--ratio`, and `--gan`, are used to determine which results should be viewed. There are two additional categories of results that can be displayed:
+Once all models have finished training (the published experiment included results from approximately 1000 models, so this may take a while), results can be viewed with the `results.py` script. The same experimental category flags, `--reg`, `--ratio`, and `--gan`, are used to determine which results should be viewed. There are two additional categories of results that can be displayed:
 
 - `--heatmap`: Generate the heatmap shown in Figure 4.
 - `--umaps`: Generates UMAPs shown in Figure 5.
