@@ -423,7 +423,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
 
     # === Step 1: Initialize full-epochs experiments ==========================
     if 1 in steps:
-        print(sf.util.bold("Running full-epoch experiments..."))
+        print(sf.util.bold("[Step 1] Running full-epoch experiments..."))
         exp_hp.epochs = [1, 3, 5, 10]
         for exp in full_epoch_exp:
             val_k = [
@@ -447,7 +447,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
 
     # === Step 2: Run the rest of the experiments at the designated epoch =====
     if 2 in steps:
-        print(sf.util.bold("Running experiments at designated epoch..."))
+        print(sf.util.bold("[Step 2] Running experiments at target epoch..."))
         exp_hp.epochs = [1]
         for exp in exp_to_run:
             if exp in full_epoch_exp:
@@ -474,7 +474,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
 
     # === Step 3: Run experiments with UQ & save predictions ==================
     if 3 in steps:
-        print(sf.util.bold("Running experiments with UQ..."))
+        print(sf.util.bold("[Step 3] Running experiments with UQ..."))
         exp_hp.epochs = [1]
         exp_hp.uq = True
         for exp in exp_to_run:
@@ -500,7 +500,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
 
     # === Step 4: Run nested UQ cross-validation ==============================
     if 4 in steps:
-        print(sf.util.bold("Running nested UQ experiments..."))
+        print(sf.util.bold("[Step 4] Running nested UQ experiments..."))
         exp_hp.epochs = [1]
         exp_hp.uq = True
         for exp in exp_to_run:
@@ -517,7 +517,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
 
     # === Step 5: Train models across full datasets ===========================
     if 5 in steps:
-        print(sf.util.bold("Training across full datasets..."))
+        print(sf.util.bold("[Step 5] Training across full datasets..."))
         exp_hp.epochs = [1]
         exp_hp.uq = True
         for exp in exp_to_run:
@@ -539,7 +539,7 @@ def run(exp_to_run, steps=None, hp='nature2022'):
     # === Step 6: External validation  ========================================
     if 6 in steps:
         for val_P in eval_Ps:
-            print(sf.util.bold(f"Running external evaluation ({val_P.name})..."))
+            print(sf.util.bold(f"[Step 6] Running eval ({val_P.name})..."))
             for exp in exp_to_run:
                 full_model = utils.find_model(P, f'EXP_{exp}_FULL', epoch=1)
                 if utils.eval_exists(val_P, f'EXP_{exp}_FULL', epoch=1):
