@@ -2,13 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-import slideflow as sf
-
-from biscuit import utils, errors
-from biscuit.errors import *
 from skmisc.loess import loess
 from sklearn import metrics
+
+import slideflow as sf
 from slideflow.util import log
+from slideflow.util import colors as col
+from biscuit import utils, errors
+from biscuit.errors import *
 
 color_palette = {
     'negative': (0.12156862745098039, 0.4666666666666667, 0.7058823529411765), # blue
@@ -117,7 +118,7 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
         log.debug(f"Using optimal, auto-detected prediction threshold (Youden's J): {opt_pred:.4f}")
         pred_thresh = opt_pred
     else:
-        log.debug(sf.util.blue(f"Using tile prediction threshold: {pred_thresh:.4f}"))
+        log.debug(col.blue(f"Using tile prediction threshold: {pred_thresh:.4f}"))
 
     if patients is not None:
         df['patient'] = df['slide'].map(patients)
@@ -162,7 +163,7 @@ def process_group_predictions(df, pred_thresh, level):
             raise errors.ROCFailedError(f"Unable to generate {level}-level ROC")
         log.debug(f"Using optimal, auto-detected prediction threshold: {pred_thresh:.4f}")
     else:
-        log.debug(sf.util.blue(f"Using {level} prediction threshold: {pred_thresh:.4f}"))
+        log.debug(col.blue(f"Using {level} prediction threshold: {pred_thresh:.4f}"))
 
     log.debug(f'{level} AUC: {level_auc:.4f}')
 
@@ -206,7 +207,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5, slide_pred_thresh
     assert keep in ('high_confidence', 'low_confidence')
     assert not (level == 'patient' and patients is None)
 
-    log.debug(sf.util.purple(f"Applying thresholds with tile uncertainty threshold of {thresh_tile:.5f}"))
+    log.debug(col.purple(f"Applying thresholds with tile uncertainty threshold of {thresh_tile:.5f}"))
     if patients: df['patient'] = df['slide'].map(patients)
     log.debug(f"Number of {level}s before tile-level filter: {pd.unique(df[level]).shape[0]}")
     log.debug(f"Number of tiles before tile-level filter: {len(df)}")
@@ -232,7 +233,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5, slide_pred_thresh
 
     # Apply slide-level thresholds
     if thresh_slide:
-        log.debug(sf.util.purple(f"Using {level} uncertainty threshold of {thresh_slide:.5f}"))
+        log.debug(col.purple(f"Using {level} uncertainty threshold of {thresh_slide:.5f}"))
         if keep == 'high_confidence':
             s_df = s_df[s_df['uncertainty'] < thresh_slide]
         elif keep == 'low_confidence':

@@ -141,15 +141,21 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
     # --- Heatmap -------------------------------------------------------------
     # Figure 4
     if heatmap:
-        eval_dts = cP.dataset(
-            tile_px=299,
-            tile_um=302,
-            filters={'slide': [heatmap_slide]}
-        )
-        matching_slide_paths = eval_dts.slide_paths()
-        if not len(matching_slide_paths):
-            raise ValueError(f"Heatmap: could not find slide {heatmap_slide}")
-        slide = matching_slide_paths[0]
+        # Use slide if directly provided
+        if os.path.exists(heatmap_slide):
+            slide = heatmap_slide
+        # Otherwise, search for this name in the eval dataset
+        else:
+            eval_dts = cP.dataset(
+                tile_px=299,
+                tile_um=302,
+                filters={'slide': [heatmap_slide]}
+            )
+            matching_slide_paths = eval_dts.slide_paths()
+            if not len(matching_slide_paths):
+                msg = f"Heatmap: could not find slide {heatmap_slide}"
+                raise ValueError(msg)
+            slide = matching_slide_paths[0]
         if not exists(join('results', 'heatmap_full')):
             os.makedirs(join('results', 'heatmap_full'))
         if not exists(join('results', 'heatmap_high_confidence')):
