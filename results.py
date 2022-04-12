@@ -93,20 +93,24 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
         df = r1_df.append(r3_df, ignore_index=True)
         df = df.append(r10_df, ignore_index=True)
 
-        n_slides_in_r10 = np.unique(r10_df['n_slides'].to_numpy())
-        df = df.loc[df['n_slides'].isin(n_slides_in_r10)]
-        print("Ratio Comparison")
-        experiment.display(
-            df.loc[df['uq'] != 'include'],
-            None,
-            hue='ratio',
-            palette='Set1',
-            prefix='ratio_comparison_'
-        )
-        print("Ratio 1:3")
-        experiment.display(r3_df, None, hue='uq', prefix='ratio3_')
-        print("Ratio 1:10")
-        experiment.display(r10_df, None, hue='uq', prefix='ratio10_')
+        try:
+            n_slides_in_r10 = np.unique(r10_df['n_slides'].to_numpy())
+            df = df.loc[df['n_slides'].isin(n_slides_in_r10)]
+        except KeyError:
+            print("Ratio training not yet done - unable to show results")
+        else:
+            print("Ratio Comparison")
+            experiment.display(
+                df.loc[df['uq'] != 'include'],
+                None,
+                hue='ratio',
+                palette='Set1',
+                prefix='ratio_comparison_'
+            )
+            print("Ratio 1:3")
+            experiment.display(r3_df, None, hue='uq', prefix='ratio3_')
+            print("Ratio 1:10")
+            experiment.display(r10_df, None, hue='uq', prefix='ratio10_')
 
     if umaps or heatmap:
         # Load the external evaluation project and find the fully trained model
