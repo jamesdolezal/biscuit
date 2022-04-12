@@ -183,6 +183,7 @@ def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None,
 
     if id is None:
         id = label
+    patients = P.dataset(verification=None).patients()
     if threshold_params is None:
         threshold_params = {
             'tile_pred_thresh':     'detect',
@@ -191,7 +192,7 @@ def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None,
             'y_pred_header':        utils.y_pred_header,
             'y_true_header':        utils.y_true_header,
             'uncertainty_header':   utils.uncertainty_header,
-            'patients':             P.dataset().patients()
+            'patients':             patients
         }
     all_tile_uq_thresh = []
     all_slide_uq_thresh = []
@@ -238,7 +239,7 @@ def thresholds_from_nested_cv(P, label, outer_k=3, inner_k=5, id=None,
                 tile_pred_thresh=tile_pred_thresh,
                 slide_pred_thresh=slide_pred_thresh,
                 plot=False,
-                patients=P.dataset().patients(),
+                patients=patients,
                 level=level
             )
             return auc, perc
@@ -770,6 +771,7 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                             thresh_tile = tile_uq_thresholds[exp]
                             thresh_slide = slide_uq_thresholds[exp]
 
+                            val_patients = val_P.dataset(verification=None).patients()
                             def get_metrics_by_level(level):
                                 return threshold.apply(
                                     tile_pred_df,
@@ -780,7 +782,7 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                     plot=(plot and keep == 'high_confidence' and exp == 'AA'),
                                     title=f'{name}: Exp. {exp} Uncertainty',
                                     keep=keep,  # Keeps only LOW or HIGH-confidence slide predictions
-                                    patients=val_P.dataset().patients(),
+                                    patients=val_patients,
                                     level=level
                                 )
 
