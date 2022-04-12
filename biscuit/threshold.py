@@ -265,13 +265,17 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
     assert keep in ('high_confidence', 'low_confidence')
     assert not (level == 'patient' and patients is None)
 
-    log.debug(sf.util.purple(f"Applying thresholds with tile uncertainty threshold of {thresh_tile:.5f}"))
+    log.debug(f"Applying tile UQ threshold of {thresh_tile:.5f}")
     if patients:
         df['patient'] = df['slide'].map(patients)
-    log.debug(f"Number of {level}s before tile-level filter: {pd.unique(df[level]).shape[0]}")
+    log.debug(f"Number of {level}s before tile UQ filter: {pd.unique(df[level]).shape[0]}")
     log.debug(f"Number of tiles before tile-level filter: {len(df)}")
 
-    df, _ = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
+    df, _ = process_tile_predictions(
+        df,
+        pred_thresh=tile_pred_thresh,
+        patients=patients
+    )
     num_pre_filter = pd.unique(df[level]).shape[0]
 
     if thresh_tile:
@@ -282,7 +286,11 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
 
     # Build group-level predictions
     try:
-        s_df, _ = process_group_predictions(df, pred_thresh=slide_pred_thresh, level=level)
+        s_df, _ = process_group_predictions(
+            df,
+            pred_thresh=slide_pred_thresh,
+            level=level
+        )
     except errors.ROCFailedError:
         log.error(f"Unable to process slide predictions")
         return None, None, None, None, None
@@ -292,7 +300,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
 
     # Apply slide-level thresholds
     if thresh_slide:
-        log.debug(sf.util.purple(f"Using {level} uncertainty threshold of {thresh_slide:.5f}"))
+        log.debug(f"Using {level} uncertainty threshold of {thresh_slide:.5f}")
         if keep == 'high_confidence':
             s_df = s_df[s_df['uncertainty'] < thresh_slide]
         elif keep == 'low_confidence':
@@ -324,30 +332,45 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
 
     return auc, percent_incl, acc, sensitivity, specificity
 
-def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thresh='detect',
-                     slide_pred_thresh='detect', plot=False, patients=None):
+def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
+           tile_pred_thresh='detect', slide_pred_thresh='detect', plot=False,
+           patients=None):
     '''Detect optimal tile- and slide-level uncertainty thresholds.
 
     Args:
-        df (pandas.DataFrame): Tile-level predictions. Must contain columns 'y_true', 'y_pred', and 'uncertainty'.
-        tile_uq_thresh (str or float): Either 'detect' or float. If 'detect', will detect tile-level uncertainty
-            threshold. If float, will use the specified tile-level uncertainty threshold.
-        slide_uq_thresh (str or float): Either 'detect' or float. If 'detect', will detect slide-level uncertainty
-            threshold. If float, will use the specified slide-level uncertainty threshold.
-        tile_pred_thresh (str or float): Either 'detect' or float. If 'detect', will detect tile-level prediction
-            threshold. If float, will use the specified tile-level prediction threshold.
-        slide_pred_thresh (str or float): Either 'detect' or float. If 'detect', will detect slide-level prediction
-            threshold. If float, will use the specified slide-level prediction threshold.
+        df (pandas.DataFrame): Tile-level predictions. Must contain columns
+            'y_true', 'y_pred', and 'uncertainty'.
+        tile_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect tile-level uncertainty threshold. If float, will use
+            the specified tile-level uncertainty threshold.
+        slide_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect slide-level uncertainty threshold. If float, will use
+            the specified slide-level uncertainty threshold.
+        tile_pred_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect tile-level prediction threshold. If float, will use the
+            specified tile-level prediction threshold.
+        slide_pred_thresh (str or float): Either 'detect' or float. If 'detect'
+            will detect slide-level prediction threshold. If float, will use
+            the specified slide-level prediction threshold.
         plot (bool, optional): Plot slide-level uncertainty. Defaults to False.
-        patients (dict, optional): Dict mapping slides to patients. Required for patient-level thresholding.
+        patients (dict, optional): Dict mapping slides to patients. Required
+            for patient-level thresholding.
 
     Returns:
-        Tile UQ threshold, Slide UQ threshold, AUC, Tile prediction threshold, Slide prediction threshold
+        Tile UQ threshold,
+        Slide UQ threshold,
+        AUC,
+        Tile prediction threshold,
+        Slide prediction threshold
     '''
 
     log.debug("Detecting thresholds...")
     try:
-        df, tile_pred_thresh = process_tile_predictions(df, pred_thresh=tile_pred_thresh, patients=patients)
+        df, tile_pred_thresh = process_tile_predictions(
+            df,
+            pred_thresh=tile_pred_thresh,
+            patients=patients
+        )
     except errors.PredsContainNaNError:
         log.error(f"Tile-level predictions contain NaNs; unable to process.")
         return None, None, None, None, None
@@ -360,9 +383,13 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
         log.debug("Not performing tile-level uncertainty thresholding.")
         thresh_tile = None
     else:
-        t_fpr, t_tpr, t_thresh = metrics.roc_curve(df['incorrect'].to_numpy(), df['uncertainty'].to_numpy())
-        thresh_tile = t_thresh[list(zip(t_tpr,t_fpr)).index(max(zip(t_tpr,t_fpr), key=lambda x: x[0] - x[1]))]
-        log.debug(f"Tile-level optimal uncertainty threshold: {thresh_tile:.4f}")
+        t_fpr, t_tpr, t_thresh = metrics.roc_curve(
+            df['incorrect'].to_numpy(),
+            df['uncertainty'].to_numpy()
+        )
+        max_j = max(zip(t_tpr, t_fpr), key=lambda x: x[0] - x[1])
+        thresh_tile = t_thresh[list(zip(t_tpr, t_fpr)).index(max_j)]
+        log.debug(f"Tile-level optimal UQ threshold: {thresh_tile:.4f}")
         df = df[df['uncertainty'] < thresh_tile]
 
     slides = list(set(df['slide']))
@@ -371,9 +398,13 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
 
     # Build slide-level predictions
     try:
-        s_df, slide_pred_thresh = process_group_predictions(df, pred_thresh=slide_pred_thresh, level='slide')
+        s_df, slide_pred_thresh = process_group_predictions(
+            df,
+            pred_thresh=slide_pred_thresh,
+            level='slide'
+        )
     except errors.ROCFailedError:
-        log.error(f"Unable to process slide predictions")
+        log.error("Unable to process slide predictions")
         return None, None, None, None, None
 
     # Slide-level thresholding
@@ -382,9 +413,13 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
             log.debug("Unable to calculate slide UQ threshold; no incorrect predictions made")
             thresh_slide = None
         else:
-            s_fpr, s_tpr, s_thresh = metrics.roc_curve(s_df['incorrect'], s_df['uncertainty'].to_numpy())
-            thresh_slide = s_thresh[list(zip(s_tpr,s_fpr)).index(max(zip(s_tpr,s_fpr), key=lambda x: x[0]-x[1]))]
-            log.debug(f"Slide-level optimal uncertainty threshold: {thresh_slide:.4f}")
+            s_fpr, s_tpr, s_thresh = metrics.roc_curve(
+                s_df['incorrect'],
+                s_df['uncertainty'].to_numpy()
+            )
+            max_j = max(zip(s_tpr, s_fpr), key=lambda x: x[0]-x[1])
+            thresh_slide = s_thresh[list(zip(s_tpr, s_fpr)).index(max_j)]
+            log.debug(f"Slide-level optimal UQ threshold: {thresh_slide:.4f}")
             if plot:
                 plot_uncertainty(s_df, threshold=thresh_slide, kind='slide')
             s_df = s_df[s_df['uncertainty'] < thresh_slide]
@@ -399,29 +434,42 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect', tile_pred_thre
 
     return thresh_tile, thresh_slide, auc, tile_pred_thresh, slide_pred_thresh
 
-def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0', uncertainty_header='uncertainty', **kwargs):
-    '''Finds the optimal tile and slide-level thresholds from a set of nested cross-validation experiments.
+def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0',
+            uncertainty_header='uncertainty', **kwargs):
+    '''Finds the optimal tile and slide-level thresholds from a set of nested
+    cross-validation experiments.
 
     Args:
         k_paths (list(str)): List of paths to tile predictions in CSV format.
-        y_pred_header (str, optional): Header indicating tile prediction. Defaults to 'y_pred1'.
-        y_true_header (str, optional): Header indicating ground-truth label. Defaults to 'y_true0'.
-        uncertainty_header (str, optional): Header indicating tile uncertainty. Defaults to 'uncertainty'.
+        y_pred_header (str, optional): Header indicating tile prediction.
+            Defaults to 'y_pred1'.
+        y_true_header (str, optional): Header indicating ground-truth label.
+            Defaults to 'y_true0'.
+        uncertainty_header (str, optional): Header indicating tile uncertainty.
+            Defaults to 'uncertainty'.
 
     Keyword args:
-        tile_uq_thresh (str or float): Either 'detect' or float. If 'detect', will detect tile-level uncertainty
-            threshold. If float, will use the specified tile-level uncertainty threshold.
-        slide_uq_thresh (str or float): Either 'detect' or float. If 'detect', will detect slide-level uncertainty
-            threshold. If float, will use the specified slide-level uncertainty threshold.
-        tile_pred_thresh (str or float): Either 'detect' or float. If 'detect', will detect tile-level prediction
-            threshold. If float, will use the specified tile-level prediction threshold.
-        slide_pred_thresh (str or float): Either 'detect' or float. If 'detect', will detect slide-level prediction
-            threshold. If float, will use the specified slide-level prediction threshold.
+        tile_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect tile-level uncertainty threshold. If float, will use
+            the specified tile-level uncertainty threshold.
+        slide_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect slide-level uncertainty threshold. If float, will use
+            the specified slide-level uncertainty threshold.
+        tile_pred_thresh (str or float): Either 'detect' or float. If 'detect',
+            will detect tile-level prediction threshold. If float, will use the
+            specified tile-level prediction threshold.
+        slide_pred_thresh (str or float): Either 'detect' or float. If 'detect'
+            will detect slide-level prediction threshold. If float, will use
+            the specified slide-level prediction threshold.
         plot (bool, optional): Plot slide-level uncertainty. Defaults to False.
-        patients (dict, optional): Dict mapping slides to patients. Required for patient-level thresholding.
+        patients (dict, optional): Dict mapping slides to patients. Required
+            for patient-level thresholding.
 
     Returns:
-        Tile UQ threshold, Slide UQ threshold, Tile prediction threshold, Slide prediction threshold
+        Tile UQ threshold,
+        Slide UQ threshold,
+        Tile prediction threshold,
+        Slide prediction threshold
     '''
 
     k_tile_thresh, k_slide_thresh = [], []
@@ -433,7 +481,12 @@ def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0', uncertain
     for p, path in enumerate(k_paths):
         log.debug(f"Detecting thresholds from {path}")
         df = pd.read_csv(path)
-        df.rename(columns={y_pred_header: 'y_pred', y_true_header: 'y_true', uncertainty_header: 'uncertainty'}, inplace=True)
+        new_cols = {
+            y_pred_header: 'y_pred',
+            y_true_header: 'y_true',
+            uncertainty_header: 'uncertainty'
+        }
+        df.rename(columns=new_cols, inplace=True)
         thresh_tile, thresh_slide, auc, slide_pred_thresh, tile_pred_thresh = detect(df, **kwargs)
         if thresh_tile is None or thresh_slide is None:
             log.debug(f"Skipping CV #{p}, unable to detect threshold")
@@ -449,9 +502,9 @@ def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0', uncertain
             k_slide_thresh += [thresh_slide]
 
     if not skip_tile and not len(k_tile_thresh):
-        raise errors.ThresholdError('Unable to detect tile uncertainty threshold.')
+        raise errors.ThresholdError('Unable to detect tile UQ threshold.')
     if not skip_slide and not len(k_slide_thresh):
-        raise errors.ThresholdError('Unable to detect slide uncertainty threshold.')
+        raise errors.ThresholdError('Unable to detect slide UQ threshold.')
 
     k_slide_pred_thresh = np.mean(k_slide_pred_thresh)
     k_tile_pred_thresh = np.mean(k_tile_pred_thresh)

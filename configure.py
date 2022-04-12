@@ -5,15 +5,14 @@ from biscuit import experiment
 from os.path import exists, join, abspath
 
 
-# ----------------------------------------------------------------------------
-
 @click.command()
 @click.option('--train_slides', type=str, help='Directory to training slides, for cross-validation', required=True)
 @click.option('--val_slides', type=str, help='Directory to external evaluation slides, for evaluation')
 @click.option('--train_anns', type=str, help='Directory to annotation file for training data (CSV)', default='annotations/tcga.csv', show_default=True)
 @click.option('--val_anns', type=str, help='Directory to annotation file for training data (CSV)', default='annotations/cptac.csv', show_default=True)
 @click.option('--train_roi', type=str, help='Directory to CSV ROI files, for cross-validation')
-def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val_anns=None, out='projects'):
+def configure_projects(train_slides, train_anns, train_roi, val_slides=None,
+                       val_anns=None, out='projects'):
 
     # Absolute paths
     train_slides = abspath(train_slides)
@@ -62,7 +61,9 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None, val
     # Set up external evaluation project
     if val_slides:
         if not val_anns:
-            raise ValueError("If providing evaluation slides, evaluation annotations must also be provided (--val_anns)")
+            msg = "If providing evaluation slides, evaluation annotations "
+            msg += "must also be provided (--val_anns)"
+            raise ValueError(msg)
         if (not exists(join(out, 'evaluation'))
            or not exists(join(out, 'evaluation', 'settings.json'))):
             print("Setting up evaluation project.")
