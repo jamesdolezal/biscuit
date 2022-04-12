@@ -314,7 +314,7 @@ def config(name_pattern, subset, ratio, **kwargs):
     return config
 
 
-def add(path, label, out1, out2, outcome=utils.OUTCOME, order='forward',
+def add(path, label, out1, out2, outcome=utils.OUTCOME, order='f',
         order_col='order', gan=0):
     """Adds a sample size experiment to the given project annotations file.
 
@@ -327,9 +327,9 @@ def add(path, label, out1, out2, outcome=utils.OUTCOME, order='forward',
             in the experiment.
         outcome (str, optional): Annotation header which indicates the outcome
             of interest. Defaults to 'cohort'.
-        order (str, optional): 'forward' or 'reverse'. Indicates which
+        order (str, optional): 'f' (forward) or 'r' (reverse). Indicates which
             direction to follow when sequentially adding slides.
-            Defaults to 'forward'.
+            Defaults to 'f'.
         order_col (str, optional): Annotation header column to use when
             sequentially adding slides. Defaults to 'order'.
         gan (int, optional): Number of GAN slides to include in experiment.
@@ -342,14 +342,14 @@ def add(path, label, out1, out2, outcome=utils.OUTCOME, order='forward',
     assert isinstance(out1, int)
     assert isinstance(out2, int)
     assert isinstance(gan, (int, float)) and 0 <= gan < 1
-    assert order in ('forward', 'reverse')
+    assert order in ('f', 'r')
 
     ann = pd.read_csv(path, dtype=str)
     print(f"Setting up exp. {label} with order {order} (sort by {order_col})")
     ann[order_col] = pd.to_numeric(ann[order_col])
     ann.sort_values(
         ['gan', utils.OUTCOME, order_col],
-        ascending=[True, True, (order != 'reverse')],
+        ascending=[True, True, (order != 'r')],
         inplace=True
     )
     gan_out1 = round(gan * out1)
