@@ -164,7 +164,7 @@ project.extract_tiles(
 )
 ```
 
-A PDF report summarizing the tile extraction phase can be found in the TFRecords directory.
+A PDF report summarizing the tile extraction phase will be saved in the TFRecords directory.
 
 ## Train models in cross-validation
 Next, train models in cross-validation using uncertainty quantification (UQ), which estimates uncertainty via dropout. Model hyperparameters can be manually configured with `sf.model.ModelParams`. Alternatively, the hyperparameters we used in the above manuscript can be accessed via `biscuit.hp.nature2022`. The `uq` parameter should be set to `True` to enable UQ.
