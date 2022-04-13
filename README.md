@@ -200,9 +200,54 @@ biscuit.train_nested_cv(
 )
 ```
 
-## Calculate UQ thresholds and show results
-Finally, UQ thresholds are determined from the previously trained nested cross-validation models.
+The experimental results for each cross-fold can either be manually viewed by opening `results_log.csv` in each model directory, or with the following functions:
 
+```python
+cv_models = biscuit.find_cv(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header"
+)
+for m in cv_models:
+    results = biscuit.get_model_results(m, outcome="some_header"))
+    print(m, results['pt_auc'])  # Prints patient-level AUC for each model
 ```
-To be continued...
+
+## Calculate UQ thresholds and show results
+Finally, UQ thresholds are determined from the previously trained nested cross-validation models. Use `biscuit.thresholds_from_nested_cv()` to calculate optimal thresholds, and then apply these thresholds to the outer cross-validation data, rendering high-confidence predictions.
+
+```python
+df, thresh = biscuit.thresholds_from_nested_cv(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header"
+)
 ```
+
+`thresh` will be a dictionary of tile- and slide-level UQ thresholds, and the slide-level prediction threshold. `df` is a pandas DataFrame containing the thresholded, high-confidence UQ predictions from outer cross-validation.
+
+```python
+>>> print(df)
+     id  n_slides  fold       uq  patient_auc  patient_uq_perc  slide_auc  slide_uq_perc
+0  TEST     359.0   1.0  include     0.974119         0.909091   0.974119       0.909091
+1  TEST     359.0   2.0  include     0.972060         0.840336   0.972060       0.840336
+2  TEST     359.0   3.0  include     0.901786         0.873950   0.901786       0.873950
+>>> print(thresh)
+{'tile_uq': 0.008116906, 'slide_uq': 0.0023400568179163194, 'slide_pred': 0.17693227693333335}
+```
+
+## Visualize uncertainty calibration
+Plots can be generated showing the relationship between predictions and uncertainty, as shown in Figure 3 of the manuscript. The `biscuit.plot_uq_calibration()` function will generate these plots, which can then be shown using `plt.show()`:
+
+```python
+import matplotlib.pyplot as plt
+
+biscuit.plot_uq_calibration(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header",
+    **thresh  # Pass the thresholds from the prior step
+)
+```
+
+## Full example
