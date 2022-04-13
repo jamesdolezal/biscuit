@@ -183,7 +183,7 @@ biscuit.train(
     project=project,
     outcome="some_header",  # Annotations header with labels
     hp=hp,                  # Hyperparameters
-    label="EXPERIMENT"      # Experiment label/ID
+    label="EXPERIMENT",     # Experiment label/ID
     save_predictions=True   # Saves predictions in CSV format
 )
 ```
@@ -209,7 +209,7 @@ cv_models = biscuit.find_cv(
     outcome="some_header"
 )
 for m in cv_models:
-    results = biscuit.get_model_results(m, outcome="some_header"))
+    results = biscuit.get_model_results(m, outcome="some_header")
     print(m, results['pt_auc'])  # Prints patient-level AUC for each model
 ```
 
@@ -248,6 +248,80 @@ biscuit.plot_uq_calibration(
     outcome="some_header",
     **thresh  # Pass the thresholds from the prior step
 )
+plt.show()
 ```
 
+![calibration](images/example_calibration.png)
+
 ## Full example
+For reference, the full script to accomplish the above custom UQ experiment would look like:
+
+```python
+import matplotlib.pyplot as plt
+import slideflow as sf
+import biscuit
+
+# Set up a project
+project = sf.Project(
+    name='MyProject',
+    annotations='/path/to/patient_annotations.csv'
+)
+project.add_source(
+    name="TCGA_LUNG",
+    slides="/path/to/slides",
+    roi="/path/to/ROI",
+    tiles="/tiles/destination",
+    tfrecords="/tfrecords/destination"
+)
+
+# Extract tiles from slides into TFRecords
+project.extract_tiles(
+    tile_px=299,  # Tile size in pixels
+    tile_um=302   # Tile size in microns
+)
+
+# Train cross-validation (CV) UQ models
+hp = biscuit.hp.nature2022
+hp.uq = True
+biscuit.train(
+    project=project,
+    outcome="some_header",  # Annotations header with labels
+    hp=hp,                  # Hyperparameters
+    label="EXPERIMENT",      # Experiment label/ID
+    save_predictions=True   # Saves predictions in CSV format
+)
+
+# Train the nested CV models (for thresholds)
+biscuit.train_nested_cv(
+    project=project,
+    outcome="some_header",
+    hp=hp,
+    label="EXPERIMENT"
+)
+
+# Show the non-thresholded model results
+cv_models = biscuit.find_cv(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header"
+)
+for m in cv_models:
+    results = biscuit.get_model_results(m, outcome="some_header")
+    print(m, results['pt_auc'])  # Prints patient-level AUC for each model
+
+# Calculate thresholds from the nested CV models
+df, thresh = biscuit.thresholds_from_nested_cv(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header"
+)
+
+# Plot predictions vs. uncertainty
+biscuit.plot_uq_calibration(
+    project=project,
+    label="EXPERIMENT",
+    outcome="some_header",
+    **thresh  # Pass the thresholds from the prior step
+)
+plt.show()
+```
