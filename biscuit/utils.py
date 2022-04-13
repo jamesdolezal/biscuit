@@ -17,9 +17,23 @@ OUTCOME = 'cohort'
 OUTCOME1 = 'LUAD'
 OUTCOME2 = 'LUSC'
 
-uncertainty_header = f'{OUTCOME}_uncertainty1'
-y_true_header = f'{OUTCOME}_y_true0'
-y_pred_header = f'{OUTCOME}_y_pred1'
+
+def uncertainty_header(o=None):
+    if o is None:
+        o = OUTCOME
+    return f'{o}_uncertainty1'
+
+
+def y_true_header(o=None):
+    if o is None:
+        o = OUTCOME
+    return f'{o}_y_true0'
+
+
+def y_pred_header(o=None):
+    if o is None:
+        o = OUTCOME
+    return f'{o}_y_pred1'
 
 
 # --- General utility functions -----------------------------------------------
@@ -42,7 +56,8 @@ def get_model_results(path, outcome=None):
             (biscuit.utils.OUTCOME). Defaults to None.
 
     Returns:
-        patient_auc, patient_ap, slide_auc, slide_ap, tile_auc, tile_ap, thresh
+        Dict of results with the keys: pt_auc, pt_ap, slide_auc, slide_ap,
+            tile_auc, tile_ap, opt_thresh
     """
     if outcome is None:
         outcome = OUTCOME
@@ -58,15 +73,23 @@ def get_model_results(path, outcome=None):
     if os.path.exists(pred_path):
         _, opt_thresh = auc_and_threshold(*read_group_predictions(pred_path))
     else:
-        _, opt_thresh = None, None
-    return pt_auc, pt_ap, slide_auc, slide_ap, tile_auc, tile_ap, opt_thresh
+        opt_thresh = None
+    return {
+        'pt_auc': pt_auc,
+        'pt_ap': pt_ap,
+        'slide_auc': slide_auc,
+        'slide_ap': slide_ap,
+        'tile_auc': tile_auc,
+        'tile_ap': tile_ap,
+        'opt_thresh': opt_thresh
+    }
 
 
-def find_cv_early_stop(P, label, k=3, outcome=None):
+def find_cv_early_stop(project, label, k=3, outcome=None):
     """Detects early stop batch from cross-val trained models.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         k (int, optional): Number of k-fold iterations. Defaults to 3.
         outcome (str, optional): Outcome name. If none, uses default
@@ -75,7 +98,7 @@ def find_cv_early_stop(P, label, k=3, outcome=None):
     Returns:
         int: Early stop batch.
     """
-    cv_folders = find_cv(P, label, k=k, outcome=outcome)
+    cv_folders = find_cv(project, label, k=k, outcome=outcome)
     early_stop_batch = []
     for cv_folder in cv_folders:
         csv = pd.read_csv(join(cv_folder, 'results_log.csv'))
@@ -91,11 +114,11 @@ def find_cv_early_stop(P, label, k=3, outcome=None):
 
 # --- Utility functions for finding experiment models -------------------------
 
-def find_model(P, label, epoch=None, kfold=None, outcome=None):
+def find_model(project, label, epoch=None, kfold=None, outcome=None):
     """Searches for a model in a project model directory.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         epoch (int, optional): Epoch to search for. If not None, returns
             path to the saved model. If None, returns path to parent model
@@ -115,7 +138,10 @@ def find_model(P, label, epoch=None, kfold=None, outcome=None):
         outcome = OUTCOME
     tail = '' if kfold is None else f'-kfold{kfold}'
     model_name = f'{outcome}-{label}-HP0{tail}'
-    matching = [o for o in os.listdir(P.models_dir) if o[6:] == model_name]
+    matching = [
+        o for o in os.listdir(project.models_dir)
+        if o[6:] == model_name
+    ]
     if len(matching) > 1:
         msg = f"Multiple matching models found matching {model_name}"
         raise MultipleModelsFoundError(msg)
@@ -124,19 +150,19 @@ def find_model(P, label, epoch=None, kfold=None, outcome=None):
         raise ModelNotFoundError(msg)
     elif epoch is not None:
         return join(
-            P.models_dir,
+            project.models_dir,
             matching[0],
             f'{outcome}-{label}-HP0{tail}_epoch{epoch}'
         )
     else:
-        return join(P.models_dir, matching[0])
+        return join(project.models_dir, matching[0])
 
 
-def model_exists(P, label, epoch=None, kfold=None, outcome=None):
+def model_exists(project, label, epoch=None, kfold=None, outcome=None):
     """Check if matching model exists.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         epoch (int, optional): Epoch number of saved model. Defaults to None.
         kfold (int, optional): K-fold iteration. Defaults to None.
@@ -147,17 +173,17 @@ def model_exists(P, label, epoch=None, kfold=None, outcome=None):
         bool: If model exists
     """
     try:
-        find_model(P, label, epoch, kfold=kfold, outcome=outcome)
+        find_model(project, label, epoch, kfold=kfold, outcome=outcome)
         return True
     except ModelNotFoundError:
         return False
 
 
-def find_cv(P, label, epoch=None, k=3, outcome=None):
+def find_cv(project, label, epoch=None, k=3, outcome=None):
     """Finds paths to cross-validation models.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         epoch (int, optional): Epoch number of saved model. Defaults to None.
         kfold (int, optional): K-fold iteration. Defaults to None.
@@ -168,16 +194,16 @@ def find_cv(P, label, epoch=None, k=3, outcome=None):
         list(str): Paths to cross-validation models.
     """
     return [
-        find_model(P, label, epoch=epoch, kfold=_k, outcome=outcome)
+        find_model(project, label, epoch=epoch, kfold=_k, outcome=outcome)
         for _k in range(1, k+1)
     ]
 
 
-def find_eval(P, label, epoch=1, outcome=None):
+def find_eval(project, label, epoch=1, outcome=None):
     """Finds matching eval directory.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         epoch (int, optional): Epoch number of saved model. Defaults to None.
         outcome (str, optional): Outcome name. If none, uses default
@@ -193,7 +219,7 @@ def find_eval(P, label, epoch=1, outcome=None):
     if outcome is None:
         outcome = outcome
     matching = [
-        o for o in os.listdir(P.eval_dir)
+        o for o in os.listdir(project.eval_dir)
         if o[11:] == f'{OUTCOME}-{label}-HP0_epoch{epoch}'
     ]
     if len(matching) > 1:
@@ -202,14 +228,14 @@ def find_eval(P, label, epoch=1, outcome=None):
     elif not len(matching):
         raise ModelNotFoundError(f"No matching eval found for label {label}")
     else:
-        return join(P.eval_dir, matching[0])
+        return join(project.eval_dir, matching[0])
 
 
-def eval_exists(P, label, epoch=1):
+def eval_exists(project, label, epoch=1):
     """Check if matching eval exists.
 
     Args:
-        P (slideflow.Project): Project.
+        project (slideflow.Project): Project.
         label (str): Experimental label.
         epoch (int, optional): Epoch number of saved model. Defaults to None.
 
@@ -217,7 +243,7 @@ def eval_exists(P, label, epoch=1):
         bool: If eval exists
     """
     try:
-        find_eval(P, label, epoch)
+        find_eval(project, label, epoch)
         return True
     except ModelNotFoundError:
         return False

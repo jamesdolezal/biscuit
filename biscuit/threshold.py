@@ -5,7 +5,6 @@ import pandas as pd
 from skmisc.loess import loess
 from sklearn import metrics
 
-import slideflow as sf
 from slideflow.util import log
 from biscuit import utils, errors
 
@@ -167,7 +166,6 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
     )
     df['incorrect'] = (~df['correct']).astype(int)
     df['y_pred_bin'] = (df['y_pred'] >= pred_thresh).astype(int)
-
     return df, pred_thresh
 
 def process_group_predictions(df, pred_thresh, level):
@@ -213,7 +211,7 @@ def process_group_predictions(df, pred_thresh, level):
     log.debug(f'{level} AUC: {level_auc:.4f}')
 
     correct = (((yp < pred_thresh) & (yt == 0))
-              | ((yp >= pred_thresh) & (yt == 1)))
+               | ((yp >= pred_thresh) & (yt == 1)))
     incorrect = pd.Series(
         ((yp < pred_thresh) & (yt == 1))
         | ((yp >= pred_thresh) & (yt == 0))
@@ -332,6 +330,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
 
     return auc, percent_incl, acc, sensitivity, specificity
 
+
 def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
            tile_pred_thresh='detect', slide_pred_thresh='detect', plot=False,
            patients=None):
@@ -434,6 +433,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
 
     return thresh_tile, thresh_slide, auc, tile_pred_thresh, slide_pred_thresh
 
+
 def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0',
             uncertainty_header='uncertainty', **kwargs):
     '''Finds the optimal tile and slide-level thresholds from a set of nested
@@ -475,8 +475,10 @@ def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0',
     k_tile_thresh, k_slide_thresh = [], []
     k_tile_pred_thresh, k_slide_pred_thresh = [], []
     k_auc = []
-    skip_tile = 'tile_uq_thresh' in kwargs and kwargs['tile_uq_thresh'] is None
-    skip_slide = 'slide_uq_thresh' in kwargs and kwargs['slide_uq_thresh'] is None
+    skip_tile = ('tile_uq_thresh' in kwargs
+                 and kwargs['tile_uq_thresh'] is None)
+    skip_slide = ('slide_uq_thresh' in kwargs
+                  and kwargs['slide_uq_thresh'] is None)
 
     for p, path in enumerate(k_paths):
         log.debug(f"Detecting thresholds from {path}")

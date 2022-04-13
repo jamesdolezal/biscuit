@@ -122,9 +122,9 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
 
         # Get tile uncertainty threshold
         threshold_params = {
-            'y_pred_header':        utils.y_pred_header,
-            'y_true_header':        utils.y_true_header,
-            'uncertainty_header':   utils.uncertainty_header,
+            'y_pred_header':        utils.y_pred_header(),
+            'y_true_header':        utils.y_true_header(),
+            'uncertainty_header':   utils.uncertainty_header(),
             'patients':             P.dataset().patients()
         }
         all_tile_uq_thresh = []
@@ -133,13 +133,13 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
                 join(folder, 'tile_predictions_val_epoch1.csv')
                 for folder in utils.find_cv(P, f'EXP_AA_UQ-k{k}', k=5)
             ]
-            tile_thresh, *_ = threshold.from_cv(
+            tile_uq, *_ = threshold.from_cv(
                 k_preds,
                 tile_uq_thresh='detect',
                 slide_uq_thresh=None,
                 **threshold_params
             )
-            all_tile_uq_thresh += [tile_thresh]
+            all_tile_uq_thresh += [tile_uq]
         aa_tile_uq_thresh = mean(all_tile_uq_thresh)
 
     # --- Heatmap -------------------------------------------------------------
