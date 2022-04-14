@@ -91,7 +91,7 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None,
         P.extract_tiles(
             tile_px=299,
             tile_um=302,
-            qc=True,
+            qc='both',
             img_format='png'
         )
     print("Extracting tiles from WSIs at 512px, 400um (for GAN training)")
@@ -99,7 +99,7 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None,
         P.extract_tiles(
             tile_px=512,
             tile_um=400,
-            qc=True,
+            qc='both',
             img_format='png'
         )
     print("Finished tile extraction, project configuration complete.")
