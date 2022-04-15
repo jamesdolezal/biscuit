@@ -135,6 +135,7 @@ BISCUIT can also be used on your own data in custom projects. To create a new pr
 import slideflow as sf
 
 project = sf.Project(
+    '/project/path',
     name='MyProject',
     annotations='/path/to/patient_annotations.csv'
 )
@@ -263,6 +264,7 @@ import biscuit
 
 # Set up a project
 project = sf.Project(
+    '/project/path',
     name='MyProject',
     annotations='/path/to/patient_annotations.csv'
 )
