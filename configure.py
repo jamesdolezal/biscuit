@@ -112,7 +112,7 @@ def configure_projects(train_slides, train_anns, train_roi, val_slides=None,
             "tile_px": 512,
             "tile_um": 400,
             "model_type": "categorical",
-            "outcome": [
+            "outcomes": [
                 experiment.OUTCOME
             ],
             "filters": {
