@@ -121,7 +121,7 @@ def train_nested_cv(project, hp, label, outer_k=3, inner_k=5,
 
 
 def plot_uq_calibration(project, label, tile_uq, slide_uq, slide_pred,
-                        outcome=None):
+                        outcome=None, epoch=1):
     """Plots a graph of predictions vs. uncertainty.
 
     Args:
@@ -140,7 +140,7 @@ def plot_uq_calibration(project, label, tile_uq, slide_uq, slide_pred,
         pd.read_csv(
             join(
                 utils.find_model(project, label, kfold=k, outcome=outcome),
-                'tile_predictions_val_epoch1.csv'),
+                f'tile_predictions_val_epoch{epoch}.csv'),
             dtype={'slide': str})
         for k in range(1, 4)
     ]
