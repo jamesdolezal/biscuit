@@ -15,8 +15,6 @@ These files and the accompanying package `biscuit` are considered pre-release. T
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
 
-*_**Note**: At the time of manuscript submission, Slideflow 1.1 has not been fully released. Please use Version 1.1 Release Candidate 1 (`slideflow==1.1.0rc1`)._
-
 # Reproducing Results
 
 ## Data preparation
