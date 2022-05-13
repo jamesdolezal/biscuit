@@ -10,7 +10,7 @@ These files and the accompanying package `biscuit` are considered pre-release. T
 ## Requirements
 - Python >= 3.7
 - [Tensorflow](https://tensorflow.org) >=2.7.0 (and associated pre-requisites)
-- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1* (and associated pre-requisites)
+- [Slideflow](https://github.com/jamesdolezal/slideflow) 1.1.* (and associated pre-requisites)
 - Whole-slide images for training and validation
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
@@ -125,10 +125,11 @@ Figures and output will then be saved in the `results/` folder. For example:
 python3 results.py --ratio=True --umaps=True
 ```
 
-# Custom projects
+# Custom projects: full experiment
+You can also use BISCUIT to supervise custom experiments, including training, evaluation, and UQ thresholding.
 
 ## Setting up a project
-BISCUIT can also be used on your own data in custom projects. To create a new project, follow the [Project Setup](https://slideflow.dev/project_setup.html) instructions in the Slideflow documentation. Briefly, projects are initialized by creating an instance of the `slideflow.Project` class and require a pre-configured set of patient-level annotations in CSV format:
+Start by creating a new project, following the [Project Setup](https://slideflow.dev/project_setup.html) instructions in the Slideflow documentation. Briefly, projects are initialized by creating an instance of the `slideflow.Project` class and require a pre-configured set of patient-level annotations in CSV format:
 
 ```python
 import slideflow as sf
@@ -323,4 +324,40 @@ biscuit.plot_uq_calibration(
     **thresh  # Pass the thresholds from the prior step
 )
 plt.show()
+```
+# UQ thresholding algorithm: direct use
+Alternatively, you can use the BISCUIT UQ thresholding algorithm directly on existing data, outside the context of a Slideflow project (e.g. data generated with another framework). You will need tile-level predictions from a collection of models, such as from nested cross-validation, to calculate the thresholds. The thresholds are then applied to a set of tile-level predictions from a different model. Organize predictions from each model into separate DataFrames, each with the columns:
+
+- **y_pred**: Tile-level predictions.
+- **y_true**: Tile-level ground-truth labels.
+- **uncertainty**: Tile-level uncertainty.
+- **slide**: Slide labels.
+- **patient**: Patient labels (*optional*).
+
+```python
+>>> dfs = [pd.DataFrame(...), ...]
+>>> target_df = pd.DataFrame(...)
+```
+
+Calculate UQ thresholds from your cross-validation predictions with ``biscuit.threshold.from_cv()``. This will return a dictionary with tile- and slide-level UQ and prediction thresholds.
+
+```python
+>>> from biscuit import threshold
+>>> thresholds = threshold.from_cv(dfs)
+>>> print(thresholds)
+{'tile_uq': 0.02726791, 'slide_uq': 0.0147878695, 'tile_pred': 0.41621968, 'slide_pred': 0.4756707}
+```
+Then, apply these thresholds to your target dataframe with ``biscuit.threshold.apply()``. This will return a dictionary with slide- (or patient-) level prediction metrics, and a dataframe of the slide- (or patient-) level predictions. You can specify slide- or patient-level predictions by passing ``level`` (defaults to ``'slide'``):
+
+```python
+>>> metrics, thresh_df = threshold.apply(
+...     df,
+...     **thresholds,
+...     level='patient')
+>>> print(metrics)
+{'auc': 0.9703296703296704, 'percent_incl': 0.907051282051282, 'acc': 0.9222614840989399, 'sensitivity': 0.9230769230769231, 'specificity': 0.9214285714285714}
+>>> print(thresh_df.columns)
+Index(['slide', 'error', 'uncertainty', 'correct', 'incorrect', 'y_true',
+       'y_pred', 'y_pred_bin'],
+      dtype='object')
 ```

@@ -120,25 +120,14 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
             raise ModelNotFoundError("Couldn't find trained model EXP_AA_FULL")
         aa_model = utils.find_model(P, 'EXP_AA_FULL', epoch=1)
 
-        # Get tile uncertainty threshold
-        threshold_params = {
-            'y_pred_header':        utils.y_pred_header(),
-            'y_true_header':        utils.y_true_header(),
-            'uncertainty_header':   utils.uncertainty_header(),
-            'patients':             P.dataset().patients()
-        }
         all_tile_uq_thresh = []
         for k in range(1, 4):
-            k_preds = [
-                join(folder, 'tile_predictions_val_epoch1.csv')
-                for folder in utils.find_cv(P, f'EXP_AA_UQ-k{k}', k=5)
-            ]
-            tile_uq, *_ = threshold.from_cv(
-                k_preds,
-                tile_uq_thresh='detect',
-                slide_uq_thresh=None,
-                **threshold_params
-            )
+            tile_uq = threshold.from_cv(
+                utils.df_from_cv(P, f'EXP_AA_UQ-k{k}', k=5),
+                tile_uq='detect',
+                slide_uq=None,
+                patients=P.dataset().patients()
+            )['tile_uq']
             all_tile_uq_thresh += [tile_uq]
         aa_tile_uq_thresh = mean(all_tile_uq_thresh)
 
@@ -212,9 +201,9 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
 
     # --- Plot UMAPs (Figure 5) -----------------------------------------------
     if umaps:
-
-        df = cP.generate_features(aa_model, max_tiles=10)
-        mosaic = cP.generate_mosaic(df)
+        filters = {'cohort': ['LUAD', 'LUSC']}
+        df = cP.generate_features(aa_model, filters=filters, max_tiles=10, cache='act.pkl')
+        mosaic = cP.generate_mosaic(df, filters=filters, umap_cache='umap.pkl', use_norm=False)
 
         # Figure 5a
         mosaic.save(join('results', 'mosaic.png'))
@@ -236,6 +225,11 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
         # Figure 5e
         mosaic.slide_map.labels = mosaic.slide_map.labels < aa_tile_uq_thresh
         mosaic.slide_map.save(join('results', 'umap_confidence.svg'), s=10)
+
+        # Showing ground-truth labels
+        labels, _ = cP.dataset().labels('cohort')
+        mosaic.slide_map.label_by_slide(labels)
+        mosaic.slide_map.save(join('results', 'umap_labels.svg'), s=10)
 
     # --- Analyze GAN (overview, non-UQ) (Figure 6)----------------------------
     if gan:

@@ -95,15 +95,13 @@ def train_nested_cv(project, hp, label, outer_k=3, inner_k=5,
             if not utils.model_exists(project, f'{label}-k{ki+1}', kfold=k)
         ]
         if not len(inner_k_to_run):
-            msg = f'Skipping nested cross-val (inner k{ki+1} for experiment '
-            msg += f'{label}; already done.'
-            print(msg)
+            print(f'Skipping nested cross-val (inner k{ki+1} for experiment '
+                  f'{label}; already done.')
         else:
             if inner_k_to_run != list(range(1, inner_k+1)):
-                msg = f'Only running k-folds {inner_k_to_run} for nested '
-                msg += f'cross-val k{ki+1} in experiment {label}; '
-                msg += 'some k-folds already done.'
-                print(msg)
+                print(f'Only running k-folds {inner_k_to_run} for nested '
+                      f'cross-val k{ki+1} in experiment {label}; '
+                      'some k-folds already done.')
             train_slides = sf.util.get_slides_from_model_manifest(
                 k_model, dataset='training'
             )
@@ -180,80 +178,95 @@ def plot_uq_calibration(project, label, tile_uq, slide_uq, slide_pred,
 
 
 def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
-                              threshold_params=None, outcome=None):
+                              threshold_params=None, outcome=None, epoch=1,
+                              tile_filename='tile_predictions_val_epoch1.csv',
+                              y_true=None, y_pred=None, uncertainty=None):
     """Detects tile- and slide-level UQ thresholds and slide-level prediction
     thresholds from nested cross-validation."""
 
     if id is None:
         id = label
+    if y_pred is None:
+        y_pred = utils.y_pred_header(outcome)
+    if y_true is None:
+        y_true = utils.y_true_header(outcome)
+    if uncertainty is None:
+        uncertainty = utils.uncertainty_header(outcome)
     patients = project.dataset(verification=None).patients()
     if threshold_params is None:
         threshold_params = {
-            'tile_pred_thresh':     'detect',
-            'slide_pred_thresh':    'detect',
-            'plot':                 False,
-            'y_pred_header':        utils.y_pred_header(outcome),
-            'y_true_header':        utils.y_true_header(outcome),
-            'uncertainty_header':   utils.uncertainty_header(outcome),
-            'patients':             patients
+            'tile_pred':     'detect',
+            'slide_pred':    'detect',
+            'plot':          False,
+            'patients':      patients
         }
     all_tile_uq_thresh = []
     all_slide_uq_thresh = []
     all_slide_pred_thresh = []
     df = pd.DataFrame()
     for k in range(1, outer_k+1):
-        cv_dirs = utils.find_cv(
-            project,
-            f'{label}-k{k}',
-            k=inner_k,
-            outcome=outcome
-        )
-        k_preds = [join(f, 'tile_predictions_val_epoch1.csv') for f in cv_dirs]
+
+        try:
+            dfs = utils.df_from_cv(
+                project,
+                f'{label}-k{k}',
+                k=inner_k,
+                outcome=outcome,
+                y_true=y_true,
+                y_pred=y_pred,
+                uncertainty=uncertainty)
+        except ModelNotFoundError:
+            log.warn(f"Could not find {label} k-fold {k}; skipping")
+            continue
+
         val_path = join(
             utils.find_model(project, f'{label}', kfold=k, outcome=outcome),
-            'tile_predictions_val_epoch1.csv'
+            tile_filename
         )
         if not exists(val_path):
-            raise FileNotFoundError
-        tile_uq, *_ = threshold.from_cv(
-            k_preds,
-            tile_uq_thresh='detect',
-            slide_uq_thresh=None,
+            log.warn(f"Could not find {label} k-fold {k}; skipping")
+            continue
+        tile_uq = threshold.from_cv(
+            dfs,
+            tile_uq='detect',
+            slide_uq=None,
             **threshold_params
-        )
+        )['tile_uq']
         thresholds = threshold.from_cv(
-            k_preds,
-            tile_uq_thresh=tile_uq,
-            slide_uq_thresh='detect',
+            dfs,
+            tile_uq=tile_uq,
+            slide_uq='detect',
             **threshold_params
         )
-        _, slide_uq, tile_pred, slide_pred = thresholds
         all_tile_uq_thresh += [tile_uq]
-        all_slide_uq_thresh += [slide_uq]
-        all_slide_pred_thresh += [slide_pred]
-        tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
+        all_slide_uq_thresh += [thresholds['slide_uq']]
+        all_slide_pred_thresh += [thresholds['slide_pred']]
+        if sf.util.path_to_ext(val_path).lower() == 'csv':
+            tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
+        elif sf.util.path_to_ext(val_path).lower() in ('parquet', 'gzip'):
+            tile_pred_df = pd.read_parquet(val_path)
+        else:
+            raise OSError(f"Unrecognized prediction filetype {val_path}")
+
         rename_cols = {
-            utils.y_pred_header(outcome): 'y_pred',
-            utils.y_true_header(outcome): 'y_true',
-            utils.uncertainty_header(outcome): 'uncertainty'
+            y_pred: 'y_pred',
+            y_true: 'y_true',
+            uncertainty: 'uncertainty'
         }
         tile_pred_df.rename(columns=rename_cols, inplace=True)
 
-        def get_auc_by_level(level):
-            auc, perc, _, _, _ = threshold.apply(
+        def uq_auc_by_level(level):
+            results, _ = threshold.apply(
                 tile_pred_df,
-                thresh_tile=tile_uq,
-                thresh_slide=slide_uq,
-                tile_pred_thresh=tile_pred,
-                slide_pred_thresh=slide_pred,
                 plot=False,
                 patients=patients,
-                level=level
+                level=level,
+                **thresholds
             )
-            return auc, perc
+            return results['auc'], results['percent_incl']
 
-        pt_auc, pt_perc = get_auc_by_level('patient')
-        slide_auc, slide_perc = get_auc_by_level('slide')
+        pt_auc, pt_perc = uq_auc_by_level('patient')
+        slide_auc, slide_perc = uq_auc_by_level('slide')
         model = utils.find_model(
             project,
             f'{label}',
@@ -274,9 +287,9 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         }, ignore_index=True)
 
     thresholds = {
-        'tile_uq': mean(all_tile_uq_thresh),
-        'slide_uq': mean(all_slide_uq_thresh),
-        'slide_pred': mean(all_slide_pred_thresh),
+        'tile_uq': None if not all_tile_uq_thresh else mean(all_tile_uq_thresh),
+        'slide_uq': None if not all_tile_uq_thresh else mean(all_slide_uq_thresh),
+        'slide_pred': None if not all_tile_uq_thresh else mean(all_slide_pred_thresh),
     }
     return df, thresholds
 
@@ -598,7 +611,7 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
             continue
         for i, m in enumerate(models):
             try:
-                results = utils.get_model_results(m)
+                results = utils.get_model_results(m, epoch=1)
             except FileNotFoundError:
                 print(f"Unable to open cross-val results for {exp}; skipping")
                 continue
@@ -626,7 +639,7 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
         all_pred_thresh = []
         for i, m in enumerate(models):
             try:
-                results = utils.get_model_results(m)
+                results = utils.get_model_results(m, epoch=1)
                 all_pred_thresh += [results['opt_thresh']]
                 df = df.append({
                     'id': exp,
@@ -692,7 +705,7 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                 # Read and prepare model results
                 try:
                     eval_dir = utils.find_eval(val_P, f'EXP_{exp}_FULL')
-                    results = utils.get_model_results(eval_dir)
+                    results = utils.get_model_results(eval_dir, epoch=1)
                 except (FileNotFoundError, MatchError):
                     log.debug(f"Skipping eval for exp {exp}; eval not found")
                     continue
@@ -777,13 +790,14 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                             thresh_slide = slide_uq_thresholds[exp]
 
                             val_patients = val_P.dataset(verification=None).patients()
+
                             def get_metrics_by_level(level):
                                 return threshold.apply(
                                     tile_pred_df,
-                                    thresh_tile=thresh_tile,
-                                    thresh_slide=thresh_slide,
-                                    tile_pred_thresh=0.5,
-                                    slide_pred_thresh=pred_uq_thresholds[exp],
+                                    tile_uq=thresh_tile,
+                                    slide_uq=thresh_slide,
+                                    tile_pred=0.5,
+                                    slide_pred=pred_uq_thresholds[exp],
                                     plot=(plot and keep == 'high_confidence' and exp == 'AA'),
                                     title=f'{name}: Exp. {exp} Uncertainty',
                                     keep=keep,  # Keeps only LOW or HIGH-confidence slide predictions
@@ -791,8 +805,8 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                     level=level
                                 )
 
-                            s_uq_auc, s_uq_perc, s_uq_acc, s_uq_sens, s_uq_spec = get_metrics_by_level('slide')
-                            p_uq_auc, p_uq_perc, p_uq_acc, p_uq_sens, p_uq_spec = get_metrics_by_level('patient')
+                            s_results, _ = get_metrics_by_level('slide')
+                            p_results, _ = get_metrics_by_level('patient')
                             if (plot and keep == 'high_confidence' and exp == 'AA'):
                                 plt.savefig(join(OUT, f'{name}_uncertainty_v_preds.svg'))
 
@@ -802,18 +816,18 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                 'id': exp,
                                 'n_slides': n_slides,
                                 'uq': ('include' if keep == 'high_confidence' else 'exclude'),
-                                'slide_incl': s_uq_perc,
-                                'slide_auc': s_uq_auc,
-                                'slide_acc': s_uq_acc,
-                                'slide_sens': s_uq_sens,
-                                'slide_spec': s_uq_spec,
-                                'slide_youden': s_uq_sens + s_uq_spec - 1,
-                                'patient_incl': p_uq_perc,
-                                'patient_auc': p_uq_auc,
-                                'patient_acc': p_uq_acc,
-                                'patient_sens': p_uq_sens,
-                                'patient_spec': p_uq_spec,
-                                'patient_youden': p_uq_sens + p_uq_spec - 1
+                                'slide_incl': s_results['percent_incl'],
+                                'slide_auc': s_results['auc'],
+                                'slide_acc': s_results['acc'],
+                                'slide_sens': s_results['sensitivity'],
+                                'slide_spec': s_results['specificity'],
+                                'slide_youden': s_results['sensitivity'] + s_results['specificity'] - 1,
+                                'patient_incl': p_results['percent_incl'],
+                                'patient_auc': p_results['auc'],
+                                'patient_acc': p_results['acc'],
+                                'patient_sens': p_results['sensitivity'],
+                                'patient_spec': p_results['specificity'],
+                                'patient_youden': p_results['sensitivity'] + p_results['specificity'] - 1,
                             }, ignore_index=True)
         for eval_name in eval_dfs:
             eval_dfs[eval_name].to_csv(
@@ -961,15 +975,17 @@ def display(df, eval_dfs, hue='uq', palette='tab10', relplot_uq_compare=True,
             y='patient_uq_perc',
             data=df,
             marker='o',
-            ax=axes[2]
+            ax=axes[2],
+            zorder=3
         )
         axes[2].set_ylabel('')
         axes[2].title.set_text('% Patients Included with UQ (cross-val)')
         axes[2].xaxis.set_minor_locator(plticker.MultipleLocator(100))
         axes[2].tick_params(labelrotation=90)
-        axes[2].grid(visible=True, which='both', axis='both', color='white')
+        axes[2].grid(visible=True, which='both', axis='both', color='white', zorder=0)
         axes[2].set_facecolor('#EAEAF2')
         axes[2].set_xlim(100)
+        axes[2].scatter(x=df.groupby('n_slides', as_index=False).median().n_slides.values, y=df.groupby('n_slides').median().patient_uq_perc.values, marker='x', zorder=5)
 
         plt.subplots_adjust(bottom=0.2)
         plt.savefig(join(OUT, f'{prefix}crossval.svg'))
@@ -978,6 +994,8 @@ def display(df, eval_dfs, hue='uq', palette='tab10', relplot_uq_compare=True,
 
     if eval_dfs:
         for eval_name, eval_df in eval_dfs.items():
+            if not len(eval_df):
+                continue
             has_uq = len(eval_df.loc[eval_df['uq'].isin(['include', 'exclude'])])
 
             # Prepare figure
