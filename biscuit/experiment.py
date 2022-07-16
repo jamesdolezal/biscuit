@@ -257,7 +257,7 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         tile_pred_df.rename(columns=rename_cols, inplace=True)
 
         def uq_auc_by_level(level):
-            auc, perc, _, _, _ = threshold.apply(
+            auc, perc, *_ = threshold.apply(
                 tile_pred_df,
                 thresh_tile=tile_uq,
                 thresh_slide=slide_uq,
@@ -809,8 +809,8 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                     level=level
                                 )
 
-                            s_uq_auc, s_uq_perc, s_uq_acc, s_uq_sens, s_uq_spec = get_metrics_by_level('slide')
-                            p_uq_auc, p_uq_perc, p_uq_acc, p_uq_sens, p_uq_spec = get_metrics_by_level('patient')
+                            s_uq_auc, s_uq_perc, s_uq_acc, s_uq_sens, s_uq_spec, _ = get_metrics_by_level('slide')
+                            p_uq_auc, p_uq_perc, p_uq_acc, p_uq_sens, p_uq_spec, _ = get_metrics_by_level('patient')
                             if (plot and keep == 'high_confidence' and exp == 'AA'):
                                 plt.savefig(join(OUT, f'{name}_uncertainty_v_preds.svg'))
 

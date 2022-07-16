@@ -261,7 +261,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
             Defaults to 'slide'.
 
     Returns:
-        auc, percent_incl, accuracy, sensitivity, specificity
+        auc, percent_incl, accuracy, sensitivity, specificity, DataFrame
     '''
 
     assert keep in ('high_confidence', 'low_confidence')
@@ -295,7 +295,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
         )
     except errors.ROCFailedError:
         log.error("Unable to process slide predictions")
-        return None, None, None, None, None
+        return None, None, None, None, None, None
 
     if plot:
         plot_uncertainty(s_df, threshold=thresh_slide, kind=level, title=title)
