@@ -1,13 +1,13 @@
-import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 import pandas as pd
-from skmisc.loess import loess
-from sklearn import metrics
+import seaborn as sns
 
-import slideflow as sf
+from sklearn import metrics
+from skmisc.loess import loess
 from slideflow.util import log
-from biscuit import utils, errors
+
+from biscuit import errors, utils
 
 
 def plot_uncertainty(df, kind, threshold=None, title=None):
@@ -48,10 +48,10 @@ def plot_uncertainty(df, kind, threshold=None, title=None):
     axes[0].title.set_text(f'Uncertainty density ({kind}-level)')
 
     # Middle figure - Scatter -------------------------------------------------
-    axes[1].axhline(y=threshold, color='r', linestyle='--')
 
     # - Above threshold
     if threshold is not None:
+        axes[1].axhline(y=threshold, color='r', linestyle='--')
         at_df = df.loc[(df['uncertainty'] >= threshold)]
         c_a_df = at_df.loc[at_df['correct']]
         ic_a_df = at_df.loc[~at_df['correct']]
@@ -65,7 +65,7 @@ def plot_uncertainty(df, kind, threshold=None, title=None):
         axes[1].scatter(
             x=ic_a_df['y_pred'],
             y=ic_a_df['uncertainty'],
-            marker='x',
+            marker='v',
             color='#FC6D77'
         )
     # - Below threshold
@@ -84,7 +84,8 @@ def plot_uncertainty(df, kind, threshold=None, title=None):
     axes[1].scatter(
         x=ic_df['y_pred'],
         y=ic_df['uncertainty'],
-        marker='x',
+        marker='v',
+        s=10,
         color='red'
     )
     if title is not None:
@@ -106,7 +107,8 @@ def plot_uncertainty(df, kind, threshold=None, title=None):
     axes[2].fill_between(x, ll, ul, alpha=.2)
     axes[2].tick_params(labelrotation=90)
     axes[2].set_ylim(-0.1, 1.1)
-    axes[2].axvline(x=threshold, color='r', linestyle='--')
+    if threshold is not None:
+        axes[2].axvline(x=threshold, color='r', linestyle='--')
 
     # - Figure style
     for ax in (axes[1], axes[2]):
@@ -168,6 +170,7 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
     df['incorrect'] = (~df['correct']).astype(int)
     df['y_pred_bin'] = (df['y_pred'] >= pred_thresh).astype(int)
     return df, pred_thresh
+
 
 def process_group_predictions(df, pred_thresh, level):
     '''From a given dataframe of tile-level predictions, calculate group-level
@@ -291,7 +294,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
             level=level
         )
     except errors.ROCFailedError:
-        log.error(f"Unable to process slide predictions")
+        log.error("Unable to process slide predictions")
         return None, None, None, None, None
 
     if plot:
@@ -329,7 +332,7 @@ def apply(df, thresh_tile, thresh_slide, tile_pred_thresh=0.5,
     log.debug(f"Sensitivity: {sensitivity:.4f}")
     log.debug(f"Specificity: {specificity:.4f}")
 
-    return auc, percent_incl, acc, sensitivity, specificity
+    return auc, percent_incl, acc, sensitivity, specificity, s_df
 
 
 def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
@@ -372,7 +375,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
             patients=patients
         )
     except errors.PredsContainNaNError:
-        log.error(f"Tile-level predictions contain NaNs; unable to process.")
+        log.error("Tile-level predictions contain NaNs; unable to process.")
         return None, None, None, None, None
 
     # Tile-level ROC and Youden's J

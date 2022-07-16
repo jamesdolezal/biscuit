@@ -1,17 +1,16 @@
 import os
-import csv
-import shutil
-import pandas as pd
-import numpy as np
-import slideflow as sf
-import matplotlib.colors as colors
-
-from biscuit.errors import MultipleModelsFoundError, ModelNotFoundError
-from biscuit.delong import delong_roc_variance
-from sklearn import metrics
-from scipy import stats
-from statistics import mean, variance
 from os.path import join
+from statistics import mean, variance
+
+import matplotlib.colors as colors
+import numpy as np
+import pandas as pd
+import slideflow as sf
+from scipy import stats
+from sklearn import metrics
+
+from biscuit.delong import delong_roc_variance
+from biscuit.errors import ModelNotFoundError, MultipleModelsFoundError
 
 OUTCOME = 'cohort'
 OUTCOME1 = 'LUAD'
@@ -47,7 +46,7 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     return new_cmap
 
 
-def get_model_results(path, outcome=None):
+def get_model_results(path, epoch, outcome=None):
     """Reads results/metrics from a trained model.
 
     Args:
@@ -62,19 +61,31 @@ def get_model_results(path, outcome=None):
     if outcome is None:
         outcome = OUTCOME
     csv = pd.read_csv(join(path, 'results_log.csv'))
-    model_res = next(csv.iterrows())[1]
+    result_rows = {}
+    for i, row in csv.iterrows():
+        row_epoch = int(row['model_name'].split('epoch')[-1])
+        result_rows.update({
+            row_epoch: row
+        })
+    if epoch not in result_rows:
+        raise ModelNotFoundError(f"Unable to find results for epoch {epoch}")
+    model_res = result_rows[epoch]
     pt_ap = mean(eval(model_res['patient_ap'])[outcome])
     pt_auc = eval(model_res['patient_auc'])[outcome][0]
     slide_ap = mean(eval(model_res['slide_ap'])[outcome])
     slide_auc = eval(model_res['slide_auc'])[outcome][0]
     tile_ap = mean(eval(model_res['tile_ap'])[outcome])
     tile_auc = eval(model_res['tile_auc'])[outcome][0]
-    pred_path = join(path, f'patient_predictions_{OUTCOME}_val_epoch1.csv')
-    try:
+
+    pred_path = join(
+        path,
+        f'patient_predictions_{outcome}_val_epoch{epoch}.csv'
+    )
+    if os.path.exists(pred_path):
         _, opt_thresh = auc_and_threshold(*read_group_predictions(pred_path))
-    except OSError:
+    else:
         try:
-            parquet_path = join(path, f'patient_predictions_val_epoch1.parquet.gzip')
+            parquet_path = join(path, 'patient_predictions_val_epoch1.parquet.gzip')
             _, opt_thresh = auc_and_threshold(*read_group_predictions(parquet_path))
         except OSError:
             opt_thresh = None
@@ -196,11 +207,11 @@ def find_model(project, label, epoch=None, kfold=None, outcome=None):
         if o[6:] == model_name
     ]
     if len(matching) > 1:
-        msg = f"Multiple matching models found matching {model_name}"
-        raise MultipleModelsFoundError(msg)
+        raise MultipleModelsFoundError("Multiple matching models found "
+                                       f"matching {model_name}")
     elif not len(matching):
-        msg = f"No matching model found matching {model_name}."
-        raise ModelNotFoundError(msg)
+        raise ModelNotFoundError("No matching model found matching "
+                                 f"{model_name}.")
     elif epoch is not None:
         return join(
             project.models_dir,
@@ -276,8 +287,8 @@ def find_eval(project, label, epoch=1, outcome=None):
         if o[11:] == f'{OUTCOME}-{label}-HP0_epoch{epoch}'
     ]
     if len(matching) > 1:
-        msg = f"Multiple matching eval experiments found for label {label}"
-        raise MultipleModelsFoundError(msg)
+        raise MultipleModelsFoundError("Multiple matching eval experiments "
+                                       f"found for label {label}")
     elif not len(matching):
         raise ModelNotFoundError(f"No matching eval found for label {label}")
     else:
