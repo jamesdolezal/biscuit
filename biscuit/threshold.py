@@ -264,7 +264,7 @@ def apply(df, tile_uq, slide_uq, tile_pred=0.5,
         Dictionary of results, with keys auc, percent_incl, accuracy,
             sensitivity, and specificity
 
-        DataFrame of thresholded predictions
+        DataFrame of thresholded group-level predictions
     '''
 
     assert keep in ('high_confidence', 'low_confidence')
