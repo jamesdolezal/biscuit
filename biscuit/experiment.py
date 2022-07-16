@@ -258,13 +258,10 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         def uq_auc_by_level(level):
             auc, perc, *_ = threshold.apply(
                 tile_pred_df,
-                thresh_tile=tile_uq,
-                thresh_slide=thresholds['slide_uq'],
-                tile_pred_thresh=thresholds['tile_pred'],
-                slide_pred_thresh=thresholds['slide_pred'],
                 plot=False,
                 patients=patients,
-                level=level
+                level=level,
+                **thresholds
             )
             return auc, perc
 
@@ -797,10 +794,10 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                             def get_metrics_by_level(level):
                                 return threshold.apply(
                                     tile_pred_df,
-                                    thresh_tile=thresh_tile,
-                                    thresh_slide=thresh_slide,
-                                    tile_pred_thresh=0.5,
-                                    slide_pred_thresh=pred_uq_thresholds[exp],
+                                    tile_uq=thresh_tile,
+                                    slide_uq=thresh_slide,
+                                    tile_pred=0.5,
+                                    slide_pred=pred_uq_thresholds[exp],
                                     plot=(plot and keep == 'high_confidence' and exp == 'AA'),
                                     title=f'{name}: Exp. {exp} Uncertainty',
                                     keep=keep,  # Keeps only LOW or HIGH-confidence slide predictions
