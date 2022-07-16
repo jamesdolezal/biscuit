@@ -465,12 +465,11 @@ def from_cv(dfs, **kwargs):
             for patient-level thresholding.
 
     Returns:
-        Tile UQ threshold,
-        Slide UQ threshold,
-        Tile prediction threshold,
-        Slide prediction threshold
+        Dictionary with tile- and slide-level UQ and prediction threhsolds,
+            with keys: 'tile_uq', 'tile_pred', 'slide_uq', 'slide_pred'
     '''
 
+    required_cols = ('y_true', 'y_pred', 'uncertainty', 'slide', 'patient')
     k_tile_thresh, k_slide_thresh = [], []
     k_tile_pred_thresh, k_slide_pred_thresh = [], []
     k_auc = []
@@ -481,6 +480,10 @@ def from_cv(dfs, **kwargs):
 
     for idx, df in enumerate(dfs):
         log.debug(f"Detecting thresholds from fold {idx}")
+        if not all(col in df.columns for col in required_cols):
+            raise ValueError(
+                f"DataFrame missing columns, expected {required_cols}"
+            )
         thresh_tile, thresh_slide, auc, slide_pred_thresh, tile_pred_thresh = detect(df, **kwargs)
         if thresh_tile is None or thresh_slide is None:
             log.debug(f"Skipping CV #{idx}, unable to detect threshold")
@@ -508,4 +511,9 @@ def from_cv(dfs, **kwargs):
     if not skip_slide:
         k_slide_thresh = np.max(k_slide_thresh)
 
-    return k_tile_thresh, k_slide_thresh, k_tile_pred_thresh, k_slide_pred_thresh
+    return {
+        'tile_uq': k_tile_thresh,
+        'slide_uq': k_slide_thresh,
+        'tile_pred': k_tile_pred_thresh,
+        'slide_pred': k_slide_pred_thresh
+    }

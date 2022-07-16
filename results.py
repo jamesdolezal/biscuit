@@ -122,12 +122,12 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
 
         all_tile_uq_thresh = []
         for k in range(1, 4):
-            tile_uq, *_ = threshold.from_cv(
+            tile_uq = threshold.from_cv(
                 utils.df_from_cv(P, f'EXP_AA_UQ-k{k}', k=5),
                 tile_uq_thresh='detect',
                 slide_uq_thresh=None,
                 patients=P.dataset().patients()
-            )
+            )['tile_uq']
             all_tile_uq_thresh += [tile_uq]
         aa_tile_uq_thresh = mean(all_tile_uq_thresh)
 

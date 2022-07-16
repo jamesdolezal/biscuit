@@ -226,22 +226,21 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         if not exists(val_path):
             log.warn(f"Could not find {label} k-fold {k}; skipping")
             continue
-        tile_uq, *_ = threshold.from_cv(
+        tile_uq = threshold.from_cv(
             dfs,
             tile_uq_thresh='detect',
             slide_uq_thresh=None,
             **threshold_params
-        )
+        )['tile_uq']
         thresholds = threshold.from_cv(
             dfs,
             tile_uq_thresh=tile_uq,
             slide_uq_thresh='detect',
             **threshold_params
         )
-        _, slide_uq, tile_pred, slide_pred = thresholds
         all_tile_uq_thresh += [tile_uq]
-        all_slide_uq_thresh += [slide_uq]
-        all_slide_pred_thresh += [slide_pred]
+        all_slide_uq_thresh += [thresholds['slide_uq']]
+        all_slide_pred_thresh += [thresholds['slide_pred']]
         if sf.util.path_to_ext(val_path).lower() == 'csv':
             tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
         elif sf.util.path_to_ext(val_path).lower() in ('parquet', 'gzip'):
@@ -260,9 +259,9 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
             auc, perc, *_ = threshold.apply(
                 tile_pred_df,
                 thresh_tile=tile_uq,
-                thresh_slide=slide_uq,
-                tile_pred_thresh=tile_pred,
-                slide_pred_thresh=slide_pred,
+                thresh_slide=thresholds['slide_uq'],
+                tile_pred_thresh=thresholds['tile_pred'],
+                slide_pred_thresh=thresholds['slide_pred'],
                 plot=False,
                 patients=patients,
                 level=level
