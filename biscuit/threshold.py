@@ -261,7 +261,10 @@ def apply(df, tile_uq, slide_uq, tile_pred=0.5,
             Defaults to 'slide'.
 
     Returns:
-        auc, percent_incl, accuracy, sensitivity, specificity, DataFrame
+        Dictionary of results, with keys auc, percent_incl, accuracy,
+            sensitivity, and specificity
+
+        DataFrame of thresholded predictions
     '''
 
     assert keep in ('high_confidence', 'low_confidence')
@@ -332,7 +335,14 @@ def apply(df, tile_uq, slide_uq, tile_pred=0.5,
     log.debug(f"Sensitivity: {sensitivity:.4f}")
     log.debug(f"Specificity: {specificity:.4f}")
 
-    return auc, percent_incl, acc, sensitivity, specificity, s_df
+    results = {
+        'auc': auc,
+        'percent_incl': percent_incl,
+        'acc': acc,
+        'sensitivity': sensitivity,
+        'specificity': specificity
+    }
+    return results, s_df
 
 
 def detect(df, tile_uq='detect', slide_uq='detect', tile_pred='detect',

@@ -256,14 +256,14 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         tile_pred_df.rename(columns=rename_cols, inplace=True)
 
         def uq_auc_by_level(level):
-            auc, perc, *_ = threshold.apply(
+            results, _ = threshold.apply(
                 tile_pred_df,
                 plot=False,
                 patients=patients,
                 level=level,
                 **thresholds
             )
-            return auc, perc
+            return results['auc'], results['percent_incl']
 
         pt_auc, pt_perc = uq_auc_by_level('patient')
         slide_auc, slide_perc = uq_auc_by_level('slide')
@@ -805,8 +805,8 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                     level=level
                                 )
 
-                            s_uq_auc, s_uq_perc, s_uq_acc, s_uq_sens, s_uq_spec, _ = get_metrics_by_level('slide')
-                            p_uq_auc, p_uq_perc, p_uq_acc, p_uq_sens, p_uq_spec, _ = get_metrics_by_level('patient')
+                            s_results, _ = get_metrics_by_level('slide')
+                            p_results, _ = get_metrics_by_level('patient')
                             if (plot and keep == 'high_confidence' and exp == 'AA'):
                                 plt.savefig(join(OUT, f'{name}_uncertainty_v_preds.svg'))
 
@@ -816,18 +816,18 @@ def results(exp_to_run, uq=True, eval=True, plot=False):
                                 'id': exp,
                                 'n_slides': n_slides,
                                 'uq': ('include' if keep == 'high_confidence' else 'exclude'),
-                                'slide_incl': s_uq_perc,
-                                'slide_auc': s_uq_auc,
-                                'slide_acc': s_uq_acc,
-                                'slide_sens': s_uq_sens,
-                                'slide_spec': s_uq_spec,
-                                'slide_youden': s_uq_sens + s_uq_spec - 1,
-                                'patient_incl': p_uq_perc,
-                                'patient_auc': p_uq_auc,
-                                'patient_acc': p_uq_acc,
-                                'patient_sens': p_uq_sens,
-                                'patient_spec': p_uq_spec,
-                                'patient_youden': p_uq_sens + p_uq_spec - 1
+                                'slide_incl': s_results['percent_incl'],
+                                'slide_auc': s_results['auc'],
+                                'slide_acc': s_results['acc'],
+                                'slide_sens': s_results['sensitivity'],
+                                'slide_spec': s_results['specificity'],
+                                'slide_youden': s_results['sensitivity'] + s_results['specificity'] - 1,
+                                'patient_incl': p_results['percent_incl'],
+                                'patient_auc': p_results['auc'],
+                                'patient_acc': p_results['acc'],
+                                'patient_sens': p_results['sensitivity'],
+                                'patient_spec': p_results['specificity'],
+                                'patient_youden': p_results['sensitivity'] + p_results['specificity'] - 1,
                             }, ignore_index=True)
         for eval_name in eval_dfs:
             eval_dfs[eval_name].to_csv(
