@@ -463,16 +463,16 @@ def from_cv(dfs, **kwargs):
             and 'patient'.
 
     Keyword args:
-        tile_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+        tile_uq (str or float): Either 'detect' or float. If 'detect',
             will detect tile-level uncertainty threshold. If float, will use
             the specified tile-level uncertainty threshold.
-        slide_uq_thresh (str or float): Either 'detect' or float. If 'detect',
+        slide_uq (str or float): Either 'detect' or float. If 'detect',
             will detect slide-level uncertainty threshold. If float, will use
             the specified slide-level uncertainty threshold.
-        tile_pred_thresh (str or float): Either 'detect' or float. If 'detect',
+        tile_pred (str or float): Either 'detect' or float. If 'detect',
             will detect tile-level prediction threshold. If float, will use the
             specified tile-level prediction threshold.
-        slide_pred_thresh (str or float): Either 'detect' or float. If 'detect'
+        slide_pred (str or float): Either 'detect' or float. If 'detect'
             will detect slide-level prediction threshold. If float, will use
             the specified slide-level prediction threshold.
         plot (bool, optional): Plot slide-level uncertainty. Defaults to False.
