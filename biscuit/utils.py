@@ -63,7 +63,10 @@ def get_model_results(path, epoch, outcome=None):
     csv = pd.read_csv(join(path, 'results_log.csv'))
     result_rows = {}
     for i, row in csv.iterrows():
-        row_epoch = int(row['model_name'].split('epoch')[-1])
+        try:
+            row_epoch = int(row['model_name'].split('epoch')[-1])
+        except ValueError:
+            continue
         result_rows.update({
             row_epoch: row
         })

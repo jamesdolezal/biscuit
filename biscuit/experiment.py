@@ -291,9 +291,9 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         }, ignore_index=True)
 
     thresholds = {
-        'tile_uq': mean(all_tile_uq_thresh),
-        'slide_uq': mean(all_slide_uq_thresh),
-        'slide_pred': mean(all_slide_pred_thresh),
+        'tile_uq': None if not all_tile_uq_thresh else mean(all_tile_uq_thresh),
+        'slide_uq': None if not all_tile_uq_thresh else mean(all_slide_uq_thresh),
+        'slide_pred': None if not all_tile_uq_thresh else mean(all_slide_pred_thresh),
     }
     return df, thresholds
 
@@ -996,6 +996,8 @@ def display(df, eval_dfs, hue='uq', palette='tab10', relplot_uq_compare=True,
 
     if eval_dfs:
         for eval_name, eval_df in eval_dfs.items():
+            if not len(eval_df):
+                continue
             has_uq = len(eval_df.loc[eval_df['uq'].isin(['include', 'exclude'])])
 
             # Prepare figure
