@@ -70,10 +70,14 @@ def get_model_results(path, outcome=None):
     tile_ap = mean(eval(model_res['tile_ap'])[outcome])
     tile_auc = eval(model_res['tile_auc'])[outcome][0]
     pred_path = join(path, f'patient_predictions_{OUTCOME}_val_epoch1.csv')
-    if os.path.exists(pred_path):
+    try:
         _, opt_thresh = auc_and_threshold(*read_group_predictions(pred_path))
-    else:
-        opt_thresh = None
+    except OSError:
+        try:
+            parquet_path = join(path, f'patient_predictions_val_epoch1.parquet.gzip')
+            _, opt_thresh = auc_and_threshold(*read_group_predictions(parquet_path))
+        except OSError:
+            opt_thresh = None
     return {
         'pt_auc': pt_auc,
         'pt_ap': pt_ap,
@@ -110,6 +114,55 @@ def find_cv_early_stop(project, label, k=3, outcome=None):
         return round(mean(early_stop_batch))
     else:
         return None
+
+
+def df_from_cv(project, label, epoch=None, k=3, outcome=None, y_true=None,
+               y_pred=None, uncertainty=None):
+    """Loads tile predictions from cross-fold models & renames columns.
+
+    Args:
+        project (sf.Project): Slideflow project.
+        label (str): Experimental label.
+        epoch (int, optional): Epoch number of saved model. Defaults to None.
+        k (int, optional): K-fold iteration. Defaults to 3.
+        outcome (str, optional): Outcome name. If none, uses default
+            (biscuit.utils.OUTCOME). Defaults to None.
+        y_true (str, optional): Column name for ground truth labels.
+            Defaults to {OUTCOME}_y_true0.
+        y_pred (str, optional): Column name for predictions.
+            Defaults to {OUTCOME}_y_pred1.
+        uncertainty (str, optional): Column name for uncertainty.
+            Defaults to {OUTCOME}_y_uncertainty1.
+
+    Returns:
+        list(DataFrame): DataFrame for each k-fold.
+    """
+    if y_true is None:
+        y_true = y_true_header()
+    if y_pred is None:
+        y_pred = y_pred_header()
+    if uncertainty is None:
+        uncertainty = uncertainty_header()
+
+    dfs = []
+    model_folders = find_cv(project, label, epoch=epoch, k=k, outcome=outcome)
+    for folder in model_folders:
+        csv_path = join(folder, 'tile_predictions_val_epoch1.csv')
+        parquet_path = join(folder, 'tile_predictions_val_epoch1.parquet.gzip')
+        if os.path.exists(csv_path):
+            df = pd.read_csv(csv_path)
+        elif os.path.exists(parquet_path):
+            df = pd.read_parquet(parquet_path)
+        else:
+            raise OSError(f"Could not find tile predictions file at {folder}")
+        new_cols = {
+            y_true: 'y_true',
+            y_pred: 'y_pred',
+            uncertainty: 'uncertainty'
+        }
+        df.rename(columns=new_cols, inplace=True)
+        dfs += [df]
+    return dfs
 
 
 # --- Utility functions for finding experiment models -------------------------
@@ -251,37 +304,39 @@ def eval_exists(project, label, epoch=1):
 
 # --- Thresholding and metrics functions --------------------------------------
 
-def load_and_fix_patient_pred(path):
-    '''Reads patient-level predictions CSV file, returning pandas dataframe'''
-
-    # Fix file if necessary
-    with open(path, 'r') as f:
-        first_reader = csv.reader(f)
-        header = next(first_reader)
-        firstrow = next(first_reader)
-    if len(header) == 6 and len(firstrow) == 7:
-        print(f"Fixing predictions file at {path}")
-        header[-1] += '0'
-        header += ['uncertainty']
-        shutil.move(path, path+'.backup')
-        with open(path+'.backup', 'r') as backup:
-            reader = csv.reader(backup)
-            _ = next(reader)
-            with open(path, 'w') as fixed:
-                writer = csv.writer(fixed)
-                writer.writerow(header)
-                for row in reader:
-                    writer.writerow(row)
-    return pd.read_csv(path)
-
-
 def read_group_predictions(path):
-    '''Reads patient- or slide-level predictions CSV file,
-    returning y_true and y_pred
+    '''Reads patient- or slide-level predictions CSV or parquet file,
+    returning y_true and y_pred.
+
+    Expects a binary categorical outcome.
+
+    Compatible with Slideflow 1.1 and 1.2.
     '''
-    df = load_and_fix_patient_pred(path)
-    y_true = df['y_true1'].to_numpy()
-    y_pred = df['percent_tiles_positive1'].to_numpy()
+    if not os.path.exists(path):
+        raise OSError(f"Could not find predictions file at {path}")
+    if sf.util.path_to_ext(path).lower() == 'csv':
+        df = pd.read_csv(path)
+    elif sf.util.path_to_ext(path).lower() in ('parquet', 'gzip'):
+        df = pd.read_parquet(path)
+    else:
+        raise ValueError(f"Unrecognized extension for prediction file {path}")
+    if 'y_true1' in df.columns:
+        y_true = df['y_true1'].to_numpy()
+    else:
+        y_true_cols = [c for c in df.columns if c.endswith('y_true')]
+        if len(y_true_cols) == 1:
+            y_true = df[y_true_cols[0]].to_numpy()
+        else:
+            raise ValueError(f"Could not find y_true column at {path}")
+    if 'percent_tiles_positive1' in df.columns:
+        y_pred = df['percent_tiles_positive1'].to_numpy()
+    else:
+        y_pred_cols = [c for c in df.columns if 'y_pred' in c]
+        if len(y_pred_cols) == 2:
+            y_pred = df[y_pred_cols[1]].to_numpy()
+        else:
+            raise ValueError(f"Expected exactly 2 y_pred columns at {path}; "
+                             f"got {len(y_pred_cols)}")
     return y_true, y_pred
 
 

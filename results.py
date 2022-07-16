@@ -120,24 +120,13 @@ def show_results(train_project=None, eval_project=None, reg=False, ratio=False,
             raise ModelNotFoundError("Couldn't find trained model EXP_AA_FULL")
         aa_model = utils.find_model(P, 'EXP_AA_FULL', epoch=1)
 
-        # Get tile uncertainty threshold
-        threshold_params = {
-            'y_pred_header':        utils.y_pred_header(),
-            'y_true_header':        utils.y_true_header(),
-            'uncertainty_header':   utils.uncertainty_header(),
-            'patients':             P.dataset().patients()
-        }
         all_tile_uq_thresh = []
         for k in range(1, 4):
-            k_preds = [
-                join(folder, 'tile_predictions_val_epoch1.csv')
-                for folder in utils.find_cv(P, f'EXP_AA_UQ-k{k}', k=5)
-            ]
             tile_uq, *_ = threshold.from_cv(
-                k_preds,
+                utils.df_from_cv(P, f'EXP_AA_UQ-k{k}', k=5),
                 tile_uq_thresh='detect',
                 slide_uq_thresh=None,
-                **threshold_params
+                patients=P.dataset().patients()
             )
             all_tile_uq_thresh += [tile_uq]
         aa_tile_uq_thresh = mean(all_tile_uq_thresh)

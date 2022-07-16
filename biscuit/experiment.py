@@ -180,21 +180,26 @@ def plot_uq_calibration(project, label, tile_uq, slide_uq, slide_pred,
 
 
 def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
-                              threshold_params=None, outcome=None):
+                              threshold_params=None, outcome=None,
+                              tile_filename='tile_predictions_val_epoch1.csv',
+                              y_true=None, y_pred=None, uncertainty=None):
     """Detects tile- and slide-level UQ thresholds and slide-level prediction
     thresholds from nested cross-validation."""
 
     if id is None:
         id = label
+    if y_pred is None:
+        y_pred = utils.y_pred_header(outcome)
+    if y_true is None:
+        y_true = utils.y_true_header(outcome)
+    if uncertainty is None:
+        uncertainty = utils.uncertainty_header(outcome)
     patients = project.dataset(verification=None).patients()
     if threshold_params is None:
         threshold_params = {
             'tile_pred_thresh':     'detect',
             'slide_pred_thresh':    'detect',
             'plot':                 False,
-            'y_pred_header':        utils.y_pred_header(outcome),
-            'y_true_header':        utils.y_true_header(outcome),
-            'uncertainty_header':   utils.uncertainty_header(outcome),
             'patients':             patients
         }
     all_tile_uq_thresh = []
@@ -202,27 +207,29 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
     all_slide_pred_thresh = []
     df = pd.DataFrame()
     for k in range(1, outer_k+1):
-        cv_dirs = utils.find_cv(
+
+        dfs = utils.df_from_cv(
             project,
             f'{label}-k{k}',
             k=inner_k,
-            outcome=outcome
-        )
-        k_preds = [join(f, 'tile_predictions_val_epoch1.csv') for f in cv_dirs]
+            outcome=outcome,
+            y_true=y_true,
+            y_pred=y_pred,
+            uncertainty=uncertainty)
         val_path = join(
             utils.find_model(project, f'{label}', kfold=k, outcome=outcome),
-            'tile_predictions_val_epoch1.csv'
+            tile_filename
         )
         if not exists(val_path):
             raise FileNotFoundError
         tile_uq, *_ = threshold.from_cv(
-            k_preds,
+            dfs,
             tile_uq_thresh='detect',
             slide_uq_thresh=None,
             **threshold_params
         )
         thresholds = threshold.from_cv(
-            k_preds,
+            dfs,
             tile_uq_thresh=tile_uq,
             slide_uq_thresh='detect',
             **threshold_params
@@ -231,11 +238,17 @@ def thresholds_from_nested_cv(project, label, outer_k=3, inner_k=5, id=None,
         all_tile_uq_thresh += [tile_uq]
         all_slide_uq_thresh += [slide_uq]
         all_slide_pred_thresh += [slide_pred]
-        tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
+        if sf.util.path_to_ext(val_path).lower() == 'csv':
+            tile_pred_df = pd.read_csv(val_path, dtype={'slide': str})
+        elif sf.util.path_to_ext(val_path).lower() in ('parquet', 'gzip'):
+            tile_pred_df = pd.read_parquet(val_path)
+        else:
+            raise OSError(f"Unrecognized prediction filetype {val_path}")
+
         rename_cols = {
-            utils.y_pred_header(outcome): 'y_pred',
-            utils.y_true_header(outcome): 'y_true',
-            utils.uncertainty_header(outcome): 'uncertainty'
+            y_pred: 'y_pred',
+            y_true: 'y_true',
+            uncertainty: 'uncertainty'
         }
         tile_pred_df.rename(columns=rename_cols, inplace=True)
 

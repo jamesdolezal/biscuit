@@ -5,6 +5,7 @@ import pandas as pd
 from skmisc.loess import loess
 from sklearn import metrics
 
+import slideflow as sf
 from slideflow.util import log
 from biscuit import utils, errors
 
@@ -375,7 +376,7 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
         return None, None, None, None, None
 
     # Tile-level ROC and Youden's J
-    if isinstance(tile_uq_thresh, float):
+    if isinstance(tile_uq_thresh, (float, np.float16, np.float32, np.float64)):
         thresh_tile = tile_uq_thresh
         df = df[df['uncertainty'] < thresh_tile]
     elif tile_uq_thresh != 'detect':
@@ -434,19 +435,14 @@ def detect(df, tile_uq_thresh='detect', slide_uq_thresh='detect',
     return thresh_tile, thresh_slide, auc, tile_pred_thresh, slide_pred_thresh
 
 
-def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0',
-            uncertainty_header='uncertainty', **kwargs):
+def from_cv(dfs, **kwargs):
     '''Finds the optimal tile and slide-level thresholds from a set of nested
     cross-validation experiments.
 
     Args:
-        k_paths (list(str)): List of paths to tile predictions in CSV format.
-        y_pred_header (str, optional): Header indicating tile prediction.
-            Defaults to 'y_pred1'.
-        y_true_header (str, optional): Header indicating ground-truth label.
-            Defaults to 'y_true0'.
-        uncertainty_header (str, optional): Header indicating tile uncertainty.
-            Defaults to 'uncertainty'.
+        dfs (list(DataFrame)): List of DataFrames with tile predictions,
+            containing headers 'y_true', 'y_pred', 'uncertainty', 'slide',
+            and 'patient'.
 
     Keyword args:
         tile_uq_thresh (str or float): Either 'detect' or float. If 'detect',
@@ -480,18 +476,11 @@ def from_cv(k_paths, y_pred_header='y_pred1', y_true_header='y_true0',
     skip_slide = ('slide_uq_thresh' in kwargs
                   and kwargs['slide_uq_thresh'] is None)
 
-    for p, path in enumerate(k_paths):
-        log.debug(f"Detecting thresholds from {path}")
-        df = pd.read_csv(path)
-        new_cols = {
-            y_pred_header: 'y_pred',
-            y_true_header: 'y_true',
-            uncertainty_header: 'uncertainty'
-        }
-        df.rename(columns=new_cols, inplace=True)
+    for idx, df in enumerate(dfs):
+        log.debug(f"Detecting thresholds from fold {idx}")
         thresh_tile, thresh_slide, auc, slide_pred_thresh, tile_pred_thresh = detect(df, **kwargs)
         if thresh_tile is None or thresh_slide is None:
-            log.debug(f"Skipping CV #{p}, unable to detect threshold")
+            log.debug(f"Skipping CV #{idx}, unable to detect threshold")
             continue
 
         k_slide_pred_thresh += [slide_pred_thresh]
