@@ -46,7 +46,7 @@ ALL_EXP = {
 }
 
 
-def train(project, hp, label, filters, save_predictions=False,
+def train(project, hp, label, filters=None, save_predictions=False,
           save_model=False, outcome=None, validate_on_batch=32, **kwargs):
     """Trains a model.
 

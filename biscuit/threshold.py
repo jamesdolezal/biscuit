@@ -153,7 +153,7 @@ def process_tile_predictions(df, pred_thresh=0.5, patients=None):
         log.debug(f"Auto-detected tile prediction threshold: {opt_pred:.4f}")
         pred_thresh = opt_pred
     else:
-        log.debug(f"Using ile prediction threshold: {pred_thresh:.4f}")
+        log.debug(f"Using tile prediction threshold: {pred_thresh:.4f}")
 
     if patients is not None:
         df['patient'] = df['slide'].map(patients)
