@@ -1,5 +1,7 @@
 <img src="images/banner.png" />
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7117683.svg)](https://doi.org/10.5281/zenodo.7117683)
+
 _Uncertainty-Informed Deep Learning Models Enable High-Confidence Predictions for Digital Histopathology_. [[ArXiv]](https://arxiv.org/abs/2204.04516)
 
 _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates sampling of the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
@@ -376,4 +378,23 @@ Then, apply these thresholds to your target dataframe with ``biscuit.threshold.a
 Index(['slide', 'error', 'uncertainty', 'correct', 'incorrect', 'y_true',
        'y_pred', 'y_pred_bin'],
       dtype='object')
+```
+
+# Reference
+The manuscript describing this protocol is in press. In the meantime, if you find our work useful for your research, or if you use parts of this code, please consider citing as follows:
+
+Dolezal, James. (2022). Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.7117683
+
+```
+@software{dolezal_james_2022_7117683,
+  author       = {Dolezal, James},
+  title        = {{Bayesian Inference of Slide-level Confidence via 
+                   Uncertainty Index Thresholding (BISCUIT)}},
+  month        = sep,
+  year         = 2022,
+  publisher    = {Zenodo},
+  version      = {1.0.0},
+  doi          = {10.5281/zenodo.7117683},
+  url          = {https://doi.org/10.5281/zenodo.7117683}
+}
 ```
