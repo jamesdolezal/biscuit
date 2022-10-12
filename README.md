@@ -14,7 +14,7 @@ _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Unce
 - [Slideflow](https://github.com/jamesdolezal/slideflow) >= 1.1.0 (and associated pre-requisites)
 - Whole-slide images for training and validation
 
-Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
+Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its prerequisites.
 
 ## Summary
 This README contains instructions for the following:
