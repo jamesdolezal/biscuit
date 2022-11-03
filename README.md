@@ -4,7 +4,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7117683.svg)](https://doi.org/10.5281/zenodo.7117683)
 
-Preprint: [ArXiv](https://arxiv.org/abs/2204.04516) | Manuscript: _In press_ 
+[Journal](https://www.nature.com/articles/s41467-022-34025-x) | [ArXiv](https://arxiv.org/abs/2204.04516)
 
 _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates sampling of the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
 
@@ -383,20 +383,25 @@ Index(['slide', 'error', 'uncertainty', 'correct', 'incorrect', 'y_true',
 ```
 
 # Reference
-The manuscript describing this protocol is in press. In the meantime, if you find our work useful for your research, or if you use parts of this code, please consider citing as follows:
+If you find our work useful for your research, or if you use parts of this code, please consider citing as follows:
 
-Dolezal, James. (2022). Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.7117683
+Dolezal, J.M., Srisuwananukorn, A., Karpeyev, D. _et al_. Uncertainty-informed deep learning models enable high-confidence predictions for digital histopathology. _Nat Commun_ 13, 6572 (2022). https://doi.org/10.1038/s41467-022-34025-x
 
 ```
-@software{dolezal_james_2022_7117683,
-  author       = {Dolezal, James},
-  title        = {{Bayesian Inference of Slide-level Confidence via 
-                   Uncertainty Index Thresholding (BISCUIT)}},
-  month        = sep,
-  year         = 2022,
-  publisher    = {Zenodo},
-  version      = {1.0.0},
-  doi          = {10.5281/zenodo.7117683},
-  url          = {https://doi.org/10.5281/zenodo.7117683}
+@ARTICLE{Dolezal2022-qa,
+  title    = "Uncertainty-informed deep learning models enable high-confidence
+              predictions for digital histopathology",
+  author   = "Dolezal, James M and Srisuwananukorn, Andrew and Karpeyev, Dmitry
+              and Ramesh, Siddhi and Kochanny, Sara and Cody, Brittany and
+              Mansfield, Aaron S and Rakshit, Sagar and Bansal, Radhika and
+              Bois, Melanie C and Bungum, Aaron O and Schulte, Jefree J and
+              Vokes, Everett E and Garassino, Marina Chiara and Husain, Aliya N
+              and Pearson, Alexander T",
+  journal  = "Nature Communications",
+  volume   =  13,
+  number   =  1,
+  pages    = "6572",
+  month    =  nov,
+  year     =  2022
 }
 ```
