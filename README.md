@@ -18,9 +18,10 @@ Please refer to our [Installation instructions](https://slideflow.dev/installati
 
 ## Summary
 This README contains instructions for the following:
-1. [Reproducing experimental results](#reproducing-experimental-results)
-2. [Custom projects](#custom-projects-full-experiment)
-3. [UQ thresholding algorithm](#uq-thresholding-algorithm-direct-use)
+1. Pretrained model (🚧 coming soon 🚧)
+2. [Reproducing experimental results](#reproducing-experimental-results)
+3. [Custom projects](#custom-projects-full-experiment)
+4. [UQ thresholding algorithm](#uq-thresholding-algorithm-direct-use)
 
 # Reproducing Experimental Results
 
