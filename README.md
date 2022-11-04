@@ -16,12 +16,14 @@ _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Unce
 
 Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its prerequisites.
 
+## Pretrained model
+The final uncertainty-enabled model, trained on the full TCGA dataset to predict lung adenocarcinoma vs. squamous cell carcinoma, is available on [Hugging Face](https://huggingface.co/jamesdolezal/lung-adeno-squam-v1).
+
 ## Summary
 This README contains instructions for the following:
-1. Pretrained model (🚧 coming soon 🚧)
-2. [Reproducing experimental results](#reproducing-experimental-results)
-3. [Custom projects](#custom-projects-full-experiment)
-4. [UQ thresholding algorithm](#uq-thresholding-algorithm-direct-use)
+1. [Reproducing experimental results](#reproducing-experimental-results)
+2. [Custom projects](#custom-projects-full-experiment)
+3. [UQ thresholding algorithm](#uq-thresholding-algorithm-direct-use)
 
 # Reproducing Experimental Results
 
