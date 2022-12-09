@@ -458,12 +458,7 @@ class Experiment:
             for k in range(1, 4)
         ]
         for v in range(len(val_dfs)):
-            rename_cols = {
-                utils.y_pred_header(self.outcome): 'y_pred',
-                utils.y_true_header(self.outcome): 'y_true',
-                utils.uncertainty_header(self.outcome): 'uncertainty'
-            }
-            val_dfs[v].rename(columns=rename_cols, inplace=True)
+            utils.rename_cols(val_dfs[v], outcome=self.outcome)
         _df = val_dfs[0]
         _df = pd.concat([_df, val_dfs[1]], axis=0, join='outer', ignore_index=True)
         _df = pd.concat([_df, val_dfs[2]], axis=0, join='outer', ignore_index=True)
@@ -933,12 +928,6 @@ class Experiment:
 
         if id is None:
             id = label
-        if y_pred is None:
-            y_pred = utils.y_pred_header(self.outcome)
-        if y_true is None:
-            y_true = utils.y_true_header(self.outcome)
-        if uncertainty is None:
-            uncertainty = utils.uncertainty_header(self.outcome)
         patients = self.train_project.dataset(verification=None).patients()
         if threshold_params is None:
             threshold_params = {
@@ -994,13 +983,7 @@ class Experiment:
                 tile_pred_df = pd.read_parquet(val_path)
             else:
                 raise OSError(f"Unrecognized prediction filetype {val_path}")
-
-            rename_cols = {
-                y_pred: 'y_pred',
-                y_true: 'y_true',
-                uncertainty: 'uncertainty'
-            }
-            tile_pred_df.rename(columns=rename_cols, inplace=True)
+            utils.rename_cols(tile_pred_df, self.outcome, y_true=y_true, y_pred=y_pred, uncertainty=uncertainty)
 
             def uq_auc_by_level(level):
                 results, _ = threshold.apply(

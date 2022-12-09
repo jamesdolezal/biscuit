@@ -16,17 +16,39 @@ from biscuit.errors import ModelNotFoundError, MultipleModelsFoundError
 
 # -----------------------------------------------------------------------------
 
-def uncertainty_header(outcome):
-    return f'{outcome}_uncertainty1'
+def uncertainty_header(outcome, underscore=False):
+    return str(outcome) + ('_' if underscore else '-') + 'uncertainty1'
 
 
-def y_true_header(outcome):
-    return f'{outcome}_y_true0'
+def y_true_header(outcome, underscore=False):
+    return str(outcome) + ('_' if underscore else '-') + 'y_true0'
 
 
-def y_pred_header(outcome):
-    return f'{outcome}_y_pred1'
+def y_pred_header(outcome, underscore=False):
+    return str(outcome) + ('_' if underscore else '-') + 'y_pred1'
 
+
+def rename_cols(df, outcome, *, y_true=None, y_pred=None, uncertainty=None):
+    """Renames columns of dataframe, in place."""
+    # Support for using underscore or dashes
+    if y_true is None:
+        y_true = y_true_header(
+            outcome,
+            underscore=(y_true_header(outcome, underscore=True) in df.columns))
+    if y_pred is None:
+        y_pred = y_pred_header(
+            outcome,
+            underscore=(y_pred_header(outcome, underscore=True) in df.columns))
+    if uncertainty is None:
+        uncertainty = uncertainty_header(
+            outcome,
+            underscore=(uncertainty_header(outcome, underscore=True) in df.columns))
+    new_cols = {
+        y_true: 'y_true',
+        y_pred: 'y_pred',
+        uncertainty: 'uncertainty'
+    }
+    df.rename(columns=new_cols, inplace=True)
 
 # --- General utility functions -----------------------------------------------
 
@@ -183,13 +205,6 @@ def df_from_cv(project, label, outcome, epoch=None, k=3, y_true=None,
     Returns:
         list(DataFrame): DataFrame for each k-fold.
     """
-    if y_true is None:
-        y_true = y_true_header(outcome)
-    if y_pred is None:
-        y_pred = y_pred_header(outcome)
-    if uncertainty is None:
-        uncertainty = uncertainty_header(outcome)
-
     dfs = []
     model_folders = find_cv(project, label, epoch=epoch, k=k, outcome=outcome)
     patients = project.dataset().patients()
@@ -204,12 +219,7 @@ def df_from_cv(project, label, outcome, epoch=None, k=3, y_true=None,
             df = pd.read_parquet(parquet_path)
         else:
             raise OSError(f"Could not find tile predictions file at {folder}")
-        new_cols = {
-            y_true: 'y_true',
-            y_pred: 'y_pred',
-            uncertainty: 'uncertainty'
-        }
-        df.rename(columns=new_cols, inplace=True)
+        rename_cols(df, outcome, y_true=y_true, y_pred=y_pred, uncertainty=uncertainty)
         if 'patient' not in df.columns:
             df['patient'] = df['slide'].map(patients)
         dfs += [df]
