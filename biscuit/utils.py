@@ -35,6 +35,8 @@ def rename_cols(df, outcome, *, y_true=None, y_pred=None, uncertainty=None):
         y_true = y_true_header(
             outcome,
             underscore=(y_true_header(outcome, underscore=True) in df.columns))
+        if y_true not in df.columns:
+            y_true = str(outcome) + '-y_true'
     if y_pred is None:
         y_pred = y_pred_header(
             outcome,
