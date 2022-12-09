@@ -1,6 +1,10 @@
-<img src="images/banner.png" />
+<p align="center"><img src="https://raw.githubusercontent.com/jamesdolezal/biscuit/master/images/banner_v2.png" width="800px" alt="Main banner"/></p>
 
-_Uncertainty-Informed Deep Learning Models Enable High-Confidence Predictions for Digital Histopathology_. [[ArXiv]](https://arxiv.org/abs/2204.04516)
+# Uncertainty-Informed Deep Learning Models Enable High-Confidence Predictions for Digital Histopathology
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7117683.svg)](https://doi.org/10.5281/zenodo.7117683)
+
+[Journal](https://www.nature.com/articles/s41467-022-34025-x) | [ArXiv](https://arxiv.org/abs/2204.04516)
 
 _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates sampling of the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
 
@@ -10,7 +14,10 @@ _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Unce
 - [Slideflow](https://github.com/jamesdolezal/slideflow) >= 1.1.0 (and associated pre-requisites)
 - Whole-slide images for training and validation
 
-Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its preqrequisites.
+Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its prerequisites.
+
+## Pretrained model
+The final uncertainty-enabled model, trained on the full TCGA dataset to predict lung adenocarcinoma vs. squamous cell carcinoma, is available on [Hugging Face](https://huggingface.co/jamesdolezal/lung-adeno-squam-v1).
 
 ## Summary
 This README contains instructions for the following:
@@ -376,4 +383,28 @@ Then, apply these thresholds to your target dataframe with ``biscuit.threshold.a
 Index(['slide', 'error', 'uncertainty', 'correct', 'incorrect', 'y_true',
        'y_pred', 'y_pred_bin'],
       dtype='object')
+```
+
+# Reference
+If you find our work useful for your research, or if you use parts of this code, please consider citing as follows:
+
+Dolezal, J.M., Srisuwananukorn, A., Karpeyev, D. _et al_. Uncertainty-informed deep learning models enable high-confidence predictions for digital histopathology. _Nat Commun_ 13, 6572 (2022). https://doi.org/10.1038/s41467-022-34025-x
+
+```
+@ARTICLE{Dolezal2022-qa,
+  title    = "Uncertainty-informed deep learning models enable high-confidence
+              predictions for digital histopathology",
+  author   = "Dolezal, James M and Srisuwananukorn, Andrew and Karpeyev, Dmitry
+              and Ramesh, Siddhi and Kochanny, Sara and Cody, Brittany and
+              Mansfield, Aaron S and Rakshit, Sagar and Bansal, Radhika and
+              Bois, Melanie C and Bungum, Aaron O and Schulte, Jefree J and
+              Vokes, Everett E and Garassino, Marina Chiara and Husain, Aliya N
+              and Pearson, Alexander T",
+  journal  = "Nature Communications",
+  volume   =  13,
+  number   =  1,
+  pages    = "6572",
+  month    =  nov,
+  year     =  2022
+}
 ```
