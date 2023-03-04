@@ -10,11 +10,11 @@ from tqdm import tqdm
 from statistics import mean
 from os.path import join, exists
 
-import biscuit
 import slideflow as sf
 from slideflow.util import log
-from biscuit import utils, threshold
-from biscuit.errors import MatchError, ModelNotFoundError, ThresholdError
+from . import utils, threshold
+from . import hp as biscuit_hp
+from .errors import MatchError, ModelNotFoundError, ThresholdError
 
 # -----------------------------------------------------------------------------
 
@@ -783,7 +783,7 @@ class Experiment:
         full_epoch_exp = [e for e in exp_to_run if e in ('AA', 'A', 'D', 'G')]
 
         if hp == 'nature2022':
-            exp_hp = biscuit.hp.nature2022
+            exp_hp = biscuit_hp.nature2022
         else:
             exp_hp = hp
 

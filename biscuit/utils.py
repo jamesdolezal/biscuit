@@ -11,8 +11,8 @@ from scipy import stats
 from sklearn import metrics
 from sklearn.exceptions import UndefinedMetricWarning
 
-from biscuit.delong import delong_roc_variance
-from biscuit.errors import ModelNotFoundError, MultipleModelsFoundError
+from .delong import delong_roc_variance
+from .errors import ModelNotFoundError, MultipleModelsFoundError
 
 # -----------------------------------------------------------------------------
 

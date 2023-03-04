@@ -9,7 +9,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from skmisc.loess import loess
 from slideflow.util import log
 
-from biscuit import errors, utils
+from . import errors, utils
 
 
 def plot_uncertainty(df, kind, threshold=None, title=None):
