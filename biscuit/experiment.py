@@ -83,8 +83,7 @@ class Experiment:
         self.outdir = outdir
 
     @staticmethod
-    def add(path, label, out1, out2, order='f',
-            order_col='order', gan=0):
+    def add(path, label, out1, out2, order='f', order_col='order', gan=0):
         """Adds a sample size experiment to the given project annotations file.
 
         Args:
@@ -812,7 +811,8 @@ class Experiment:
                     filters={f'include_{exp}': ['include']},
                     splits=f'splits_{exp}.json',
                     val_k=val_k,
-                    val_strategy='k-fold'
+                    val_strategy='k-fold',
+                    save_model=False
                 )
 
         # === Step 2: Run the rest of the experiments at the designated epoch =====
@@ -838,7 +838,8 @@ class Experiment:
                     save_predictions=True,
                     splits=f'splits_{exp}.json',
                     val_k=val_k,
-                    val_strategy='k-fold'
+                    val_strategy='k-fold',
+                    save_model=False
                 )
 
         # === Step 3: Run experiments with UQ & save predictions ==================
@@ -863,7 +864,8 @@ class Experiment:
                     save_predictions=True,
                     splits=f'splits_{exp}.json',
                     val_k=val_k,
-                    val_strategy='k-fold'
+                    val_strategy='k-fold',
+                    save_model=False
                 )
 
         # === Step 4: Run nested UQ cross-validation ==============================
@@ -1023,8 +1025,8 @@ class Experiment:
         }
         return df, thresholds
 
-    def train(self, hp, label, filters=None, save_predictions=False,
-            save_model=False, validate_on_batch=32, validation_steps=32, **kwargs):
+    def train(self, hp, label, filters=None, save_predictions='csv',
+              validate_on_batch=32, validation_steps=32, **kwargs):
         """Trains a model.
 
         Args:
@@ -1032,9 +1034,7 @@ class Experiment:
             label (str): Experimental label.
             filters (dict): Patient-level annotations filter.
             save_predictions (bool, optional): Save validation predictions to
-                model folder in CSV format. Defaults to False.
-            save_model (bool, optional): Save final model after training.
-                Defaults to False.
+                model folder. Defaults to 'csv'.
 
         Returns:
             None
@@ -1045,7 +1045,6 @@ class Experiment:
             filters=filters,
             params=hp,
             save_predictions=save_predictions,
-            save_model=save_model,
             validate_on_batch=validate_on_batch,
             validation_steps=validation_steps,
             **kwargs
@@ -1086,5 +1085,6 @@ class Experiment:
                     val_k_fold=inner_k,
                     val_k=inner_k_to_run,
                     save_predictions=True,
+                    save_model=False,
                     **kwargs
                 )
