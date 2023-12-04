@@ -527,8 +527,8 @@ def from_cv(dfs, **kwargs):
             log.debug(f"Skipping CV #{idx}, unable to detect threshold")
             continue
 
-        k_tile_pred_thresh += [thresholds['slide_pred']]
-        k_slide_pred_thresh += [thresholds['tile_pred']]
+        k_tile_pred_thresh += [thresholds['tile_pred']]
+        k_slide_pred_thresh += [thresholds['slide_pred']]
         k_auc += [auc]
 
         if not skip_tile:
