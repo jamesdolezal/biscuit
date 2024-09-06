@@ -6,7 +6,7 @@
 
 [Journal](https://www.nature.com/articles/s41467-022-34025-x) | [ArXiv](https://arxiv.org/abs/2204.04516)
 
-_**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is a uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates sampling of the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
+_**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Uncertainty Index Thresholding (BISCUIT) is an uncertainty quantification and thresholding schema used to separate deep learning classification predictions on whole-slide images (WSIs) into low- and high-confidence. Uncertainty is estimated through dropout, which approximates sampling of the Bayesian posterior, and thresholds are determined on training data to mitigate data leakage during testing._
 
 ## Requirements
 - Python >= 3.7
@@ -14,7 +14,7 @@ _**What does BISCUIT do?** Bayesian Inference of Slide-level Confidence via Unce
 - [Slideflow](https://github.com/jamesdolezal/slideflow) >= 1.1.0 (and associated pre-requisites)
 - Whole-slide images for training and validation
 
-Please refer to our [Installation instructions](https://slideflow.dev/installation.html) for a guide to installing Slideflow and its prerequisites.
+Please refer to our [Installation instructions](https://slideflow.dev/installation) for a guide to installing Slideflow and its prerequisites.
 
 ## Pretrained model
 The final uncertainty-enabled model, trained on the full TCGA dataset to predict lung adenocarcinoma vs. squamous cell carcinoma, is available on [Hugging Face](https://huggingface.co/jamesdolezal/lung-adeno-squam-v1).
@@ -30,13 +30,13 @@ This README contains instructions for the following:
 ## Data preparation
 The first step to reproducing results described in our manuscript is downloading whole-slide images (\*.svs files) from [The Cancer Genome Atlas (TCGA) data portal](https://portal.gdc.cancer.gov/), projects TCGA-LUAD and TCGA-LUSC, and slides from the [Clinical Proteomics Tumor Analysis Consortium (CPTAC)](https://proteomics.cancer.gov/data-portal) data portal, projects CPTAC-LUAD and CPTAC-LSCC.
 
-We use Slideflow for deep learning model training, which organizes data and annotations into [Projects](https://slideflow.dev/project_setup.html). The provided `configure.py` script automatically sets up the TCGA training and CPTAC evaluation projects, using specified paths to the training slides (TCGA) and evaluation slides (CPTAC). This step will also segment the whole-slide images into individual tiles, storing them as `*.tfrecords` for later use.
+We use Slideflow for deep learning model training, which organizes data and annotations into [Projects](https://slideflow.dev/project_setup). The provided `configure.py` script automatically sets up the TCGA training and CPTAC evaluation projects, using specified paths to the training slides (TCGA) and evaluation slides (CPTAC). This step will also segment the whole-slide images into individual tiles, storing them as `*.tfrecords` for later use.
 
 ```
 python3 configure.py --train_slides=/path/to/TCGA --val_slides=/path/to/CPTAC
 ```
 
-Pathologist-annotated regions of interest (ROI) can optionally be used for the training dataset, as described in the [Slideflow documentation](https://slideflow.dev/pipeline.html). To use ROIs, specify the path to the ROI CSV files with the `--roi` argument.
+Pathologist-annotated regions of interest (ROI) can optionally be used for the training dataset, as described in the [Slideflow documentation](https://slideflow.dev/overview). To use ROIs, specify the path to the ROI CSV files with the `--roi` argument.
 
 ## GAN Training
 The next step is training the class-conditional GAN (StyleGAN2) used for generating GAN-Intermediate images. Clone the [StyleGAN2-slideflow](https://github.com/jamesdolezal/stylegan2-slideflow) repository, which has been modified to interface with the `*.tfrecords` storage format Slideflow uses. The GAN will be trained on 512 x 512 pixels images at 400 x 400 micron magnification. Synthetic images will be resized down to the target project size of 299 x 299 pixels and 302 x 302 microns during generation.
@@ -139,7 +139,7 @@ python3 results.py --ratio=True --umaps=True
 You can also use BISCUIT to supervise custom experiments, including training, evaluation, and UQ thresholding.
 
 ## Setting up a project
-Start by creating a new project, following the [Project Setup](https://slideflow.dev/project_setup.html) instructions in the Slideflow documentation. Briefly, projects are initialized by creating an instance of the `slideflow.Project` class and require a pre-configured set of patient-level annotations in CSV format:
+Start by creating a new project, following the [Project Setup](https://slideflow.dev/project_setup) instructions in the Slideflow documentation. Briefly, projects are initialized by creating an instance of the `slideflow.Project` class and require a pre-configured set of patient-level annotations in CSV format:
 
 ```python
 import slideflow as sf
@@ -165,7 +165,7 @@ project.add_source(
 This step should automatically attempt to associate slide names with the patient identifiers in your annotations CSV file. After this step, double check that your annotations file has a `"slide"` column for each annotation entry corresponding to the filename (without extension) of the corresponding slide. You should also ensure that the outcome labels you will be training to are correctly represented in this file.
 
 ## Extract tiles from slides
-The next step is to [extract tiles](https://slideflow.dev/extract_tiles.html) from whole-slide images, using the `sf.Project.extract_tiles()` function. This will save image tiles in the binary `*.tfrecord` format in the destination folder you previously configured.
+The next step is to [extract tiles](https://slideflow.dev/slide_processing) from whole-slide images, using the `sf.Project.extract_tiles()` function. This will save image tiles in the binary `*.tfrecord` format in the destination folder you previously configured.
 
 ```python
 project.extract_tiles(
